@@ -10,25 +10,8 @@
         .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
         h1 { margin-bottom: 5px; }
         
-        /* 計數器區塊優化 */
-        .counter-box { 
-            margin: 15px 0; 
-            background: rgba(0,0,0,0.2); 
-            padding: 10px; 
-            border-radius: 10px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            gap: 10px;
-        }
-        .btn-reset { 
-            background: none; 
-            border: none; 
-            color: rgba(255,255,255,0.6); 
-            cursor: pointer; 
-            font-size: 14px; 
-            transition: 0.3s;
-        }
+        .counter-box { margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-reset { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; transition: 0.3s; }
         .btn-reset:hover { color: #ff4d4d; transform: rotate(90deg); }
 
         .input-group { margin: 20px 0; text-align: left; }
@@ -36,8 +19,10 @@
         
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         
-        .debug-panel { margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 11px; text-align: left; word-break: break-all; }
-        .debug-title { color: #00c300; font-weight: bold; margin-bottom: 5px; display: block; }
+        /* 資訊面板樣式 */
+        .debug-panel { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 11px; text-align: left; word-break: break-all; }
+        .debug-title { color: #00c300; font-weight: bold; margin-bottom: 5px; display: block; border-bottom: 1px solid rgba(0,195,0,0.3); padding-bottom: 2px; }
+        .info-label { color: #aaa; margin-right: 5px; }
 
         .action-row { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
         .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; }
@@ -66,8 +51,9 @@
         <img id="preview">
         
         <div id="debugPanel" class="debug-panel" style="display:none;">
-            <span class="debug-title">[ 準備傳送的網址 ]</span>
-            <div id="paramValue"></div>
+            <span class="debug-title"><i class="fas fa-code"></i> 傳送資訊明細</span>
+            <div><span class="info-label">目標 ID:</span> <span id="targetId">Ud80b...7a5c</span></div>
+            <div><span class="info-label">傳送圖片:</span> <span id="paramValue"></span></div>
         </div>
 
         <div class="action-row">
@@ -79,6 +65,8 @@
     </div>
 
     <script>
+        // 這些資訊僅供網頁預覽確認，實際傳送邏輯仍在後端 GAS 執行
+        const LINE_USER_ID = "Ud80b2b85f7f616d04fda94f3b4b77a5c";
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec';
 
         // 1. 計數器邏輯
@@ -87,13 +75,11 @@
             document.getElementById('count').innerText = visits;
         }
 
-        // 初始化計數
         let visits = localStorage.getItem('v_count') || 0;
         visits++;
         localStorage.setItem('v_count', visits);
         updateCountDisplay();
 
-        // 重置按鈕邏輯
         document.getElementById('resetBtn').addEventListener('click', function() {
             if (confirm("確定要重置訪客計數器嗎？")) {
                 localStorage.setItem('v_count', 0);
@@ -106,8 +92,9 @@
         const debugPanel = document.getElementById('debugPanel');
         const paramValue = document.getElementById('paramValue');
         const gasBtn = document.getElementById('gasBtn');
+        const targetIdSpan = document.getElementById('targetId');
 
-        // 2. 當輸入框內容改變時，更新預覽圖
+        // 2. 當輸入框內容改變時
         imgUrlInput.addEventListener('input', function() {
             const url = this.value.trim();
             if (url) {
@@ -115,10 +102,11 @@
                 preview.style.display = 'block';
                 debugPanel.style.display = 'block';
                 paramValue.innerText = url;
+                targetIdSpan.innerText = LINE_USER_ID; // 顯示目標 ID
                 
                 preview.onerror = function() {
                     this.style.display = 'none';
-                    paramValue.innerText = "⚠️ 圖片網址無效或不支援跨域預覽";
+                    paramValue.innerText = "⚠️ 網址無效";
                 };
             } else {
                 preview.style.display = 'none';
@@ -137,6 +125,7 @@
             this.disabled = true;
             this.innerText = '傳送中...';
 
+            // 構建帶有 imgUrl 參數的 GAS 網址
             const finalRequestUrl = `${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`;
 
             try {
@@ -144,16 +133,15 @@
                     method: 'GET',
                     mode: 'no-cors'
                 });
-                alert('指令已發出！\n請檢查 LINE。');
+                alert('指令已發出！\n發送至：' + LINE_USER_ID);
             } catch (e) {
-                alert('傳送失敗，請檢查主控台');
+                alert('傳送失敗');
             } finally {
                 this.disabled = false;
                 this.innerText = '傳送給特定人 (GAS)';
             }
         });
 
-        // LINE 分享功能
         const shareText = encodeURIComponent(`我是蔡彥君網頁的訪客！`);
         document.getElementById('lineShare').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${shareText}`;
     </script>
