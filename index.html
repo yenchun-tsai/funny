@@ -1,48 +1,122 @@
-<img id="targetImage" src="https://example.com/your-image.jpg" style="width:200px; display: block; margin-bottom: 10px;">
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡迎光臨 - 蔡彥君</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
+        .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
+        h1 { margin-bottom: 5px; }
+        .counter-box { margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; }
+        #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .upload-area { border: 2px dashed rgba(255,255,255,0.3); padding: 20px; border-radius: 15px; margin: 20px 0; }
+        
+        /* 參數顯示區 */
+        .debug-panel { margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 11px; text-align: left; word-break: break-all; display: none; }
+        .debug-title { color: #00c300; font-weight: bold; margin-bottom: 5px; display: block; }
 
-<button id="sendBtn" style="background-color: #00c300; color: white; padding: 15px 30px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold;">
-  傳送給特定人 (GAS)
-</button>
+        .action-row { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
+        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; }
+        .btn-gas:hover { background: #00a300; transform: translateY(-2px); }
+        .btn-gas:disabled { background: #888; }
+        .share-circle { width: 48px; height: 48px; border-radius: 50%; background: white; color: #00c300; display: flex; justify-content: center; align-items: center; text-decoration: none; font-size: 24px; transition: 0.3s; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
 
-<div id="debugInfo" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; font-size: 12px; word-break: break-all; color: #555;">
-  <strong>待傳送參數：</strong> <span id="paramPreview">尚未觸發</span>
-</div>
+    <div class="container">
+        <h1>蔡彥君歡迎您</h1>
+        <div class="counter-box">您是第 <span id="count">0</span> 位訪客</div>
 
-<script>
-document.getElementById('sendBtn').addEventListener('click', function() {
-    // 1. 自動抓取網頁圖片的網址
-    var imgElement = document.getElementById('targetImage');
-    var imgUrl = imgElement.src;
-    
-    // ✨ 在介面上顯示即將傳送的參數
-    document.getElementById('paramPreview').innerText = imgUrl;
-    
-    // 2. 你的 GAS 部署網址
-    var gasUrl = "https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec"; 
+        <div class="upload-area">
+            <p>📷 選擇一張照片：</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <img id="preview">
+            
+            <div id="debugPanel" class="debug-panel">
+                <span class="debug-title">[ 傳送參數預覽 ]</span>
+                <div id="paramValue">尚未取得圖片路徑</div>
+            </div>
 
-    // 按鈕點擊後的視覺反饋
-    this.innerText = "傳送中...";
-    this.disabled = true;
+            <div class="action-row" id="controlPanel" style="display:none;">
+                <button class="btn-gas" id="gasBtn">傳送給特定人 (GAS)</button>
+                <a class="share-circle" id="lineShare" target="_blank" title="分享給好友">
+                    <i class="fab fa-line"></i>
+                </a>
+            </div>
+        </div>
+    </div>
 
-    // 建立完整的請求網址（方便除錯用）
-    var finalUrl = `${gasUrl}?imgUrl=${encodeURIComponent(imgUrl)}`;
-    console.log("正在請求網址:", finalUrl);
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec';
 
-    // 3. 使用 fetch 發送請求給 GAS
-    fetch(finalUrl, {
-        method: 'GET',
-        mode: 'no-cors' 
-    })
-    .then(() => {
-        alert("指令已發出！\n傳送網址為：" + imgUrl);
-        document.getElementById('sendBtn').innerText = "傳送給特定人 (GAS)";
-        document.getElementById('sendBtn').disabled = false;
-    })
-    .catch(err => {
-        console.error("發生錯誤:", err);
-        alert("傳送失敗，請檢查主控台。");
-        document.getElementById('sendBtn').disabled = false;
-        document.getElementById('sendBtn').innerText = "重試傳送";
-    });
-});
-</script>
+        // 1. 計數器邏輯
+        let visits = localStorage.getItem('v_count') || 0;
+        visits++;
+        localStorage.setItem('v_count', visits);
+        document.getElementById('count').innerText = visits;
+
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const controlPanel = document.getElementById('controlPanel');
+        const debugPanel = document.getElementById('debugPanel');
+        const paramValue = document.getElementById('paramValue');
+        const gasBtn = document.getElementById('gasBtn');
+        
+        let currentImgUrl = "";
+
+        // 2. 檔案讀取邏輯
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentImgUrl = e.target.result; // 這是 Base64 字串
+                    preview.src = currentImgUrl;
+                    preview.style.display = 'block';
+                    controlPanel.style.display = 'flex';
+                    debugPanel.style.display = 'block';
+                    
+                    // 顯示參數（截斷顯示避免太長）
+                    paramValue.innerText = currentImgUrl.substring(0, 100) + "... (Base64 資料)";
+                    
+                    // LINE 分享功能
+                    const shareText = encodeURIComponent(`我是蔡彥君網頁的第 ${visits} 位訪客！`);
+                    document.getElementById('lineShare').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${shareText}`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 3. 傳送給 GAS
+        gasBtn.addEventListener('click', async function() {
+            // 注意：如果 currentImgUrl 是 Base64 (data:image/...), LINE API 會傳送失敗。
+            // 建議測試時使用一個網路上的圖片網址。
+            
+            this.disabled = true;
+            this.innerText = '傳送中...';
+
+            // 構建含有參數的網址 (使用 GET 方式較容易成功)
+            const finalRequestUrl = `${GAS_URL}?imgUrl=${encodeURIComponent(currentImgUrl)}`;
+
+            try {
+                // 使用 fetch GET 請求
+                await fetch(finalRequestUrl, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                
+                alert('指令已發出！\n參數已傳遞至 GAS。');
+            } catch (e) {
+                console.error(e);
+                alert('發送失敗，請確認網路或 GAS 網址');
+            } finally {
+                this.disabled = false;
+                this.innerText = '傳送給特定人 (GAS)';
+            }
+        });
+    </script>
+</body>
+</html>
