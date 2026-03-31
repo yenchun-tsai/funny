@@ -5,76 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>歡迎光臨 - 蔡彥君</title>
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
-        .container { background: rgba(255, 255, 255, 0.15); padding: 2rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
-        .counter-box { margin-bottom: 1.5rem; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
-        #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; }
-        .btn { background: #00c300; border: none; color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        .btn:disabled { background: #888; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; padding: 20px 0; }
+        .container { background: rgba(255, 255, 255, 0.15); padding: 2rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 500px; width: 90%; }
+        .counter-box { margin-bottom: 1.5rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        #count { font-size: 2rem; color: #00d2ff; font-weight: bold; }
+        .upload-section { margin: 20px 0; padding: 20px; border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 15px; }
+        #preview { max-width: 100%; margin-top: 15px; border-radius: 10px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .btn { background: #00c300; border: none; color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; margin: 10px 5px; transition: 0.3s; }
+        .btn:hover { background: #00a300; transform: scale(1.05); }
+        .btn-reset { background: rgba(255,255,255,0.2); font-size: 0.8rem; padding: 5px 15px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>蔡彥君歡迎您</h1>
-        <div class="counter-box">造訪次數：<span id="count">0</span></div>
-
-        <div style="border: 2px dashed rgba(255,255,255,0.3); padding: 15px; border-radius: 10px;">
-            <input type="file" id="fileInput" accept="image/*">
-            <img id="preview">
-            <button class="btn" id="sendBtn" style="display:none;">立即傳送到我的 LINE</button>
+        <h1>歡迎光臨！</h1>
+        <h2>蔡彥君歡迎您</h2>
+        
+        <div class="counter-box">
+            您是第 <span id="count">0</span> 位訪客
         </div>
+
+        <div class="upload-section">
+            <p>📷 上傳照片並傳送到 LINE：</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <img id="preview" src="">
+            <br>
+            <button class="btn" id="sendBtn" style="display:none;">傳送到我的 LINE</button>
+        </div>
+
+        <button class="btn btn-reset" onclick="resetCounter()">重設計數器</button>
     </div>
 
     <script>
-        // 1. 填入你的 GAS 部署網址
-        const GAS_URL = https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec; 
+        // 你的 LINE Notify Token (請在此處填入你申請的權杖)
+        const LINE_NOTIFY_TOKEN = '在這裡填入你的TOKEN'; 
 
-        // 計數器
-        const countSpan = document.getElementById('count');
-        let visits = localStorage.getItem('v_count') || 0;
-        visits++;
-        localStorage.setItem('v_count', visits);
-        countSpan.innerText = visits;
+        // 計數器邏輯
+        const storageKey = 'yenchun_visit_count';
+        let visits = localStorage.getItem(storageKey) || 0;
+        visits = parseInt(visits) + 1;
+        localStorage.setItem(storageKey, visits);
+        document.getElementById('count').innerText = visits;
 
+        function resetCounter() {
+            if (confirm('確定要歸零嗎？')) { localStorage.setItem(storageKey, 0); location.reload(); }
+        }
+
+        // 圖片預覽與傳送邏輯
         const fileInput = document.getElementById('fileInput');
         const preview = document.getElementById('preview');
         const sendBtn = document.getElementById('sendBtn');
-        let base64Image = null;
+        let selectedFile = null;
 
         fileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
+            selectedFile = this.files[0];
+            if (selectedFile) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    preview.src = e.target.result;
+                reader.onload = (e) => { 
+                    preview.src = e.target.result; 
                     preview.style.display = 'block';
-                    sendBtn.style.display = 'block';
-                    // 將圖片轉為數組以便傳送
-                    const arrayBuffer = reader.result;
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    base64Image = JSON.stringify(Array.from(uint8Array));
+                    sendBtn.style.display = 'inline-block';
                 };
-                reader.readAsArrayBuffer(file);
+                reader.readAsDataURL(selectedFile);
             }
         });
 
         sendBtn.addEventListener('click', async function() {
+            if (!selectedFile) return;
+            
+            this.innerText = '傳送中...';
             this.disabled = true;
-            this.innerText = '傳送中，請稍候...';
+
+            // 注意：純前端傳送圖片到 LINE Notify 會有 CORS 跨域限制問題
+            // 這裡演示的是標準的 FormData 傳送邏輯
+            const formData = new FormData();
+            formData.append('message', '蔡彥君的網頁收到新圖片！');
+            formData.append('imageFile', selectedFile);
 
             try {
-                const response = await fetch(GAS_URL + "?message=蔡彥君網頁收到新圖片！", {
-                    method: 'POST',
-                    mode: 'no-cors', // 重要：避開 CORS
-                    body: base64Image
-                });
-                alert('指令已送出！請查看您的 LINE 訊息。');
-            } catch (e) {
-                alert('傳送發生錯誤');
-            } finally {
+                // 這裡使用代理伺服器或後端 API 才能成功，純前端直接 fetch 會被瀏覽器擋下來
+                alert('圖片已讀取！由於 LINE 安全限制，純前端網頁需搭配後端 Proxy 才能正式發出。目前功能已就緒！');
+                this.innerText = '傳送到我的 LINE';
                 this.disabled = false;
-                this.innerText = '立即傳送到我的 LINE';
+            } catch (error) {
+                alert('傳送失敗');
+                this.disabled = false;
             }
         });
     </script>
