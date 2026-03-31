@@ -1,8 +1,12 @@
-<img id="targetImage" src="https://example.com/your-image.jpg" style="width:200px;">
+<img id="targetImage" src="https://example.com/your-image.jpg" style="width:200px; display: block; margin-bottom: 10px;">
 
 <button id="sendBtn" style="background-color: #00c300; color: white; padding: 15px 30px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold;">
   傳送給特定人 (GAS)
 </button>
+
+<div id="debugInfo" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; font-size: 12px; word-break: break-all; color: #555;">
+  <strong>待傳送參數：</strong> <span id="paramPreview">尚未觸發</span>
+</div>
 
 <script>
 document.getElementById('sendBtn').addEventListener('click', function() {
@@ -10,26 +14,35 @@ document.getElementById('sendBtn').addEventListener('click', function() {
     var imgElement = document.getElementById('targetImage');
     var imgUrl = imgElement.src;
     
-    // 2. 你的 GAS 部署網址 (請換成你剛才複製的那串)
+    // ✨ 在介面上顯示即將傳送的參數
+    document.getElementById('paramPreview').innerText = imgUrl;
+    
+    // 2. 你的 GAS 部署網址
     var gasUrl = "https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec"; 
 
     // 按鈕點擊後的視覺反饋
     this.innerText = "傳送中...";
     this.disabled = true;
 
+    // 建立完整的請求網址（方便除錯用）
+    var finalUrl = `${gasUrl}?imgUrl=${encodeURIComponent(imgUrl)}`;
+    console.log("正在請求網址:", finalUrl);
+
     // 3. 使用 fetch 發送請求給 GAS
-    fetch(`${gasUrl}?imgUrl=${encodeURIComponent(imgUrl)}`, {
+    fetch(finalUrl, {
         method: 'GET',
-        mode: 'no-cors' // 避免跨網域報錯，雖然看不到回傳結果但指令會到達
+        mode: 'no-cors' 
     })
     .then(() => {
-        alert("指令已發出！請檢查 LINE。");
+        alert("指令已發出！\n傳送網址為：" + imgUrl);
         document.getElementById('sendBtn').innerText = "傳送給特定人 (GAS)";
         document.getElementById('sendBtn').disabled = false;
     })
     .catch(err => {
         console.error("發生錯誤:", err);
         alert("傳送失敗，請檢查主控台。");
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('sendBtn').innerText = "重試傳送";
     });
 });
 </script>
