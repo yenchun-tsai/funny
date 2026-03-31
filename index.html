@@ -4,95 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>歡迎光臨 - 蔡彥君</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; padding: 20px 0; }
-        .container { background: rgba(255, 255, 255, 0.15); padding: 2rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 500px; width: 90%; }
-        .counter-box { margin-bottom: 1.5rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
-        #count { font-size: 2rem; color: #00d2ff; font-weight: bold; }
-        .upload-section { margin: 20px 0; padding: 20px; border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 15px; }
-        #preview { max-width: 100%; margin-top: 15px; border-radius: 10px; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .btn { background: #00c300; border: none; color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; margin: 10px 5px; transition: 0.3s; }
-        .btn:hover { background: #00a300; transform: scale(1.05); }
-        .btn-reset { background: rgba(255,255,255,0.2); font-size: 0.8rem; padding: 5px 15px; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); color: #333; text-align: center; }
+        .container { background: white; padding: 2.5rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 400px; width: 90%; }
+        h1 { color: #1e3c72; margin-bottom: 5px; }
+        .counter-box { margin: 20px 0; font-size: 1.1rem; color: #666; }
+        
+        /* 分享按鈕區域樣式 (模仿你截圖的風格) */
+        .share-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .share-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.2s;
+            color: #333;
+            font-size: 20px;
+        }
+        .share-btn:hover { background-color: #f8f9fa; border-color: #bbb; }
+        .line-color { color: #00c300; font-size: 24px; } /* LINE 綠色 */
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>歡迎光臨！</h1>
-        <h2>蔡彥君歡迎您</h2>
-        
-        <div class="counter-box">
-            您是第 <span id="count">0</span> 位訪客
-        </div>
+        <h1>蔡彥君歡迎您</h1>
+        <div class="counter-box">造訪次數：<span id="count">0</span></div>
 
-        <div class="upload-section">
-            <p>📷 上傳照片並傳送到 LINE：</p>
-            <input type="file" id="fileInput" accept="image/*">
-            <img id="preview" src="">
-            <br>
-            <button class="btn" id="sendBtn" style="display:none;">傳送到我的 LINE</button>
-        </div>
+        <p>點擊下方圖示分享本站給好友：</p>
 
-        <button class="btn btn-reset" onclick="resetCounter()">重設計數器</button>
+        <div class="share-section">
+            <a class="share-btn" href="javascript:void(0);"><i class="fab fa-facebook-f"></i></a>
+            
+            <a class="share-btn" id="lineShare" target="_blank">
+                <i class="fab fa-line line-color"></i>
+            </a>
+
+            <a class="share-btn" href="javascript:void(0);"><i class="fas fa-link"></i></a>
+        </div>
     </div>
 
     <script>
-        // 你的 LINE Notify Token (請在此處填入你申請的權杖)
-        const LINE_NOTIFY_TOKEN = '在這裡填入你的TOKEN'; 
-
-        // 計數器邏輯
-        const storageKey = 'yenchun_visit_count';
-        let visits = localStorage.getItem(storageKey) || 0;
-        visits = parseInt(visits) + 1;
-        localStorage.setItem(storageKey, visits);
+        // 計數器
+        let visits = localStorage.getItem('v_count') || 0;
+        visits++;
+        localStorage.setItem('v_count', visits);
         document.getElementById('count').innerText = visits;
 
-        function resetCounter() {
-            if (confirm('確定要歸零嗎？')) { localStorage.setItem(storageKey, 0); location.reload(); }
-        }
-
-        // 圖片預覽與傳送邏輯
-        const fileInput = document.getElementById('fileInput');
-        const preview = document.getElementById('preview');
-        const sendBtn = document.getElementById('sendBtn');
-        let selectedFile = null;
-
-        fileInput.addEventListener('change', function() {
-            selectedFile = this.files[0];
-            if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = (e) => { 
-                    preview.src = e.target.result; 
-                    preview.style.display = 'block';
-                    sendBtn.style.display = 'inline-block';
-                };
-                reader.readAsDataURL(selectedFile);
-            }
-        });
-
-        sendBtn.addEventListener('click', async function() {
-            if (!selectedFile) return;
-            
-            this.innerText = '傳送中...';
-            this.disabled = true;
-
-            // 注意：純前端傳送圖片到 LINE Notify 會有 CORS 跨域限制問題
-            // 這裡演示的是標準的 FormData 傳送邏輯
-            const formData = new FormData();
-            formData.append('message', '蔡彥君的網頁收到新圖片！');
-            formData.append('imageFile', selectedFile);
-
-            try {
-                // 這裡使用代理伺服器或後端 API 才能成功，純前端直接 fetch 會被瀏覽器擋下來
-                alert('圖片已讀取！由於 LINE 安全限制，純前端網頁需搭配後端 Proxy 才能正式發出。目前功能已就緒！');
-                this.innerText = '傳送到我的 LINE';
-                this.disabled = false;
-            } catch (error) {
-                alert('傳送失敗');
-                this.disabled = false;
-            }
-        });
+        // 設定 LINE 分享連結
+        // 格式：https://social-plugins.line.me/lineit/share?url=網址&text=文字
+        const shareUrl = window.location.href; // 自動取得你目前的網頁網址
+        const shareText = encodeURIComponent("嘿！快來看看蔡彥君的網頁，我是第 " + visits + " 位訪客！");
+        
+        const lineBtn = document.getElementById('lineShare');
+        lineBtn.href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}&text=${shareText}`;
     </script>
 </body>
 </html>
