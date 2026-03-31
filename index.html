@@ -9,15 +9,33 @@
         body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
         .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
         h1 { margin-bottom: 5px; }
-        .counter-box { margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; }
         
-        /* 圖片網址輸入框樣式 */
+        /* 計數器區塊優化 */
+        .counter-box { 
+            margin: 15px 0; 
+            background: rgba(0,0,0,0.2); 
+            padding: 10px; 
+            border-radius: 10px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 10px;
+        }
+        .btn-reset { 
+            background: none; 
+            border: none; 
+            color: rgba(255,255,255,0.6); 
+            cursor: pointer; 
+            font-size: 14px; 
+            transition: 0.3s;
+        }
+        .btn-reset:hover { color: #ff4d4d; transform: rotate(90deg); }
+
         .input-group { margin: 20px 0; text-align: left; }
         .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 14px; margin-top: 8px; }
         
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         
-        /* 參數顯示區 */
         .debug-panel { margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 11px; text-align: left; word-break: break-all; }
         .debug-title { color: #00c300; font-weight: bold; margin-bottom: 5px; display: block; }
 
@@ -32,7 +50,13 @@
 
     <div class="container">
         <h1>蔡彥君歡迎您</h1>
-        <div class="counter-box">您是第 <span id="count">0</span> 位訪客</div>
+        
+        <div class="counter-box">
+            <span>您是第 <span id="count">0</span> 位訪客</span>
+            <button class="btn-reset" id="resetBtn" title="重置計數器">
+                <i class="fas fa-undo-alt"></i>
+            </button>
+        </div>
 
         <div class="input-group">
             <label>🔗 請輸入圖片網址 (URL)：</label>
@@ -58,10 +82,24 @@
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec';
 
         // 1. 計數器邏輯
+        function updateCountDisplay() {
+            let visits = localStorage.getItem('v_count') || 0;
+            document.getElementById('count').innerText = visits;
+        }
+
+        // 初始化計數
         let visits = localStorage.getItem('v_count') || 0;
         visits++;
         localStorage.setItem('v_count', visits);
-        document.getElementById('count').innerText = visits;
+        updateCountDisplay();
+
+        // 重置按鈕邏輯
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (confirm("確定要重置訪客計數器嗎？")) {
+                localStorage.setItem('v_count', 0);
+                updateCountDisplay();
+            }
+        });
 
         const imgUrlInput = document.getElementById('imgUrlInput');
         const preview = document.getElementById('preview');
@@ -78,7 +116,6 @@
                 debugPanel.style.display = 'block';
                 paramValue.innerText = url;
                 
-                // 預防圖片載入失敗
                 preview.onerror = function() {
                     this.style.display = 'none';
                     paramValue.innerText = "⚠️ 圖片網址無效或不支援跨域預覽";
@@ -92,7 +129,6 @@
         // 3. 傳送給 GAS
         gasBtn.addEventListener('click', async function() {
             const urlToSend = imgUrlInput.value.trim();
-
             if (!urlToSend) {
                 alert("請先輸入圖片網址！");
                 return;
@@ -101,19 +137,15 @@
             this.disabled = true;
             this.innerText = '傳送中...';
 
-            // 構建帶有 imgUrl 參數的 GAS 網址
             const finalRequestUrl = `${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`;
 
             try {
-                // 使用 fetch GET 請求 (mode: no-cors)
                 await fetch(finalRequestUrl, {
                     method: 'GET',
                     mode: 'no-cors'
                 });
-                
                 alert('指令已發出！\n請檢查 LINE。');
             } catch (e) {
-                console.error(e);
                 alert('傳送失敗，請檢查主控台');
             } finally {
                 this.disabled = false;
@@ -122,7 +154,7 @@
         });
 
         // LINE 分享功能
-        const shareText = encodeURIComponent(`我是蔡彥君網頁的第 ${visits} 位訪客！`);
+        const shareText = encodeURIComponent(`我是蔡彥君網頁的訪客！`);
         document.getElementById('lineShare').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${shareText}`;
     </script>
 </body>
