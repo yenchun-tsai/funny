@@ -19,16 +19,21 @@
         
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         
-        /* 資訊面板樣式 */
         .debug-panel { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 11px; text-align: left; word-break: break-all; }
         .debug-title { color: #00c300; font-weight: bold; margin-bottom: 5px; display: block; border-bottom: 1px solid rgba(0,195,0,0.3); padding-bottom: 2px; }
         .info-label { color: #aaa; margin-right: 5px; }
 
-        .action-row { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
-        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; }
+        .action-row { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .btn-group { display: flex; gap: 10px; width: 100%; }
+        
+        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; font-size: 14px; }
         .btn-gas:hover { background: #00a300; transform: translateY(-2px); }
-        .btn-gas:disabled { background: #888; }
-        .share-circle { width: 48px; height: 48px; border-radius: 50%; background: white; color: #00c300; display: flex; justify-content: center; align-items: center; text-decoration: none; font-size: 24px; transition: 0.3s; border: 1px solid #ddd; }
+        
+        /* 新按鈕樣式：傳送到個人 */
+        .btn-personal { background: #007bff; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; font-size: 14px; }
+        .btn-personal:hover { background: #0056b3; transform: translateY(-2px); }
+
+        .share-circle { width: 48px; height: 48px; border-radius: 50%; background: white; color: #00c300; display: flex; justify-content: center; align-items: center; text-decoration: none; font-size: 24px; transition: 0.3s; border: 1px solid #ddd; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -57,7 +62,12 @@
         </div>
 
         <div class="action-row">
-            <button class="btn-gas" id="gasBtn">傳送給特定人 (GAS)</button>
+            <div class="btn-group">
+                <button class="btn-gas" id="gasBtn" title="會傳到 manus_user 視窗">機器人傳送</button>
+                
+                <button class="btn-personal" id="personalBtn">傳送到個人視窗</button>
+            </div>
+            
             <a class="share-circle" id="lineShare" target="_blank" title="分享給好友">
                 <i class="fab fa-line"></i>
             </a>
@@ -65,7 +75,6 @@
     </div>
 
     <script>
-        // 這些資訊僅供網頁預覽確認，實際傳送邏輯仍在後端 GAS 執行
         const LINE_USER_ID = "Ud80b2b85f7f616d04fda94f3b4b77a5c";
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec';
 
@@ -92,6 +101,7 @@
         const debugPanel = document.getElementById('debugPanel');
         const paramValue = document.getElementById('paramValue');
         const gasBtn = document.getElementById('gasBtn');
+        const personalBtn = document.getElementById('personalBtn');
         const targetIdSpan = document.getElementById('targetId');
 
         // 2. 當輸入框內容改變時
@@ -102,7 +112,7 @@
                 preview.style.display = 'block';
                 debugPanel.style.display = 'block';
                 paramValue.innerText = url;
-                targetIdSpan.innerText = LINE_USER_ID; // 顯示目標 ID
+                targetIdSpan.innerText = LINE_USER_ID;
                 
                 preview.onerror = function() {
                     this.style.display = 'none';
@@ -114,32 +124,30 @@
             }
         });
 
-        // 3. 傳送給 GAS
+        // 3. 原有的 GAS 傳送 (傳到機器人視窗)
         gasBtn.addEventListener('click', async function() {
             const urlToSend = imgUrlInput.value.trim();
-            if (!urlToSend) {
-                alert("請先輸入圖片網址！");
-                return;
-            }
-
+            if (!urlToSend) { alert("請先輸入網址！"); return; }
             this.disabled = true;
             this.innerText = '傳送中...';
-
-            // 構建帶有 imgUrl 參數的 GAS 網址
-            const finalRequestUrl = `${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`;
-
             try {
-                await fetch(finalRequestUrl, {
-                    method: 'GET',
-                    mode: 'no-cors'
-                });
-                alert('指令已發出！\n發送至：' + LINE_USER_ID);
-            } catch (e) {
-                alert('傳送失敗');
-            } finally {
-                this.disabled = false;
-                this.innerText = '傳送給特定人 (GAS)';
-            }
+                await fetch(`${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`, { method: 'GET', mode: 'no-cors' });
+                alert('已發送至機器人視窗！');
+            } catch (e) { alert('傳送失敗'); }
+            finally { this.disabled = false; this.innerText = '機器人傳送'; }
+        });
+
+        // 4. 新功能：傳送到個人視窗 (URL Scheme)
+        personalBtn.addEventListener('click', function() {
+            const urlToSend = imgUrlInput.value.trim();
+            if (!urlToSend) { alert("請先輸入圖片網址！"); return; }
+
+            // 構建 LINE 分享連結
+            // 因為是圖片，我們傳送圖片網址，讓你在選擇對象後直接發出
+            const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(urlToSend)}`;
+            
+            // 跳轉到 LINE
+            window.location.href = lineUrl;
         });
 
         const shareText = encodeURIComponent(`我是蔡彥君網頁的訪客！`);
