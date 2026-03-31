@@ -6,72 +6,112 @@
     <title>歡迎光臨 - 蔡彥君</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); color: #333; text-align: center; }
-        .container { background: white; padding: 2.5rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 400px; width: 90%; }
-        h1 { color: #1e3c72; margin-bottom: 5px; }
-        .counter-box { margin: 20px 0; font-size: 1.1rem; color: #666; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
+        .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
+        h1 { margin-bottom: 5px; }
+        .counter-box { margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; }
+        #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         
-        /* 分享按鈕區域樣式 (模仿你截圖的風格) */
-        .share-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-top: 30px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-        .share-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 1px solid #ddd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            text-decoration: none;
-            transition: 0.2s;
-            color: #333;
-            font-size: 20px;
-        }
-        .share-btn:hover { background-color: #f8f9fa; border-color: #bbb; }
-        .line-color { color: #00c300; font-size: 24px; } /* LINE 綠色 */
+        .upload-area { border: 2px dashed rgba(255,255,255,0.3); padding: 20px; border-radius: 15px; margin: 20px 0; }
+        
+        /* 按鈕區塊 */
+        .action-row { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
+        
+        /* 傳給特定人的綠色長按鈕 */
+        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; }
+        .btn-gas:hover { background: #00a300; transform: translateY(-2px); }
+        .btn-gas:disabled { background: #888; }
+
+        /* 分享給好友的圓形圖示 */
+        .share-circle { width: 48px; height: 48px; border-radius: 50%; background: white; color: #00c300; display: flex; justify-content: center; align-items: center; text-decoration: none; font-size: 24px; transition: 0.3s; border: 1px solid #ddd; }
+        .share-circle:hover { transform: scale(1.1); background: #f0f0f0; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>蔡彥君歡迎您</h1>
-        <div class="counter-box">造訪次數：<span id="count">0</span></div>
+        <div class="counter-box">您是第 <span id="count">0</span> 位訪客</div>
 
-        <p>點擊下方圖示分享本站給好友：</p>
-
-        <div class="share-section">
-            <a class="share-btn" href="javascript:void(0);"><i class="fab fa-facebook-f"></i></a>
+        <div class="upload-area">
+            <p>📷 選擇一張照片：</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <img id="preview">
             
-            <a class="share-btn" id="lineShare" target="_blank">
-                <i class="fab fa-line line-color"></i>
-            </a>
-
-            <a class="share-btn" href="javascript:void(0);"><i class="fas fa-link"></i></a>
+            <div class="action-row" id="controlPanel" style="display:none;">
+                <button class="btn-gas" id="gasBtn">傳送給特定人 (GAS)</button>
+                
+                <a class="share-circle" id="lineShare" target="_blank" title="分享給好友">
+                    <i class="fab fa-line"></i>
+                </a>
+            </div>
         </div>
     </div>
 
     <script>
-        // 計數器
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec';
+
+        // 1. 計數器邏輯
         let visits = localStorage.getItem('v_count') || 0;
         visits++;
         localStorage.setItem('v_count', visits);
         document.getElementById('count').innerText = visits;
 
-        // 設定 LINE 分享連結
-        // 格式：https://social-plugins.line.me/lineit/share?url=網址&text=文字
-        const shareUrl = window.location.href; // 自動取得你目前的網頁網址
-        const shareText = encodeURIComponent("嘿！快來看看蔡彥君的網頁，我是第 " + visits + " 位訪客！");
-        
-        const lineBtn = document.getElementById('lineShare');
-        lineBtn.href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}&text=${shareText}`;
+        // 2. 檔案讀取邏輯
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const controlPanel = document.getElementById('controlPanel');
+        const gasBtn = document.getElementById('gasBtn');
+        const lineShare = document.getElementById('lineShare');
+        let base64Image = null;
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                const readerPreview = new FileReader();
+
+                // 預覽圖
+                readerPreview.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    controlPanel.style.display = 'flex';
+                    
+                    // 設定 LINE 分享連結 (分享網頁網址)
+                    const shareText = encodeURIComponent(`嗨！蔡彥君網頁的第 ${visits} 位訪客上傳了新照片！`);
+                    lineShare.href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${shareText}`;
+                };
+                readerPreview.readAsDataURL(file);
+
+                // 準備傳送給 GAS 的數組資料
+                reader.onload = (e) => {
+                    const uint8Array = new Uint8Array(reader.result);
+                    base64Image = JSON.stringify(Array.from(uint8Array));
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        // 3. GAS 傳送按鈕點擊事件
+        gasBtn.addEventListener('click', async function() {
+            this.disabled = true;
+            this.innerText = '傳送中...';
+
+            try {
+                // 使用 no-cors 模式傳送到你的 GAS
+                await fetch(GAS_URL + "?message=網頁收到新圖片！", {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: base64Image
+                });
+                alert('已成功觸發 GAS 傳送指令！');
+            } catch (e) {
+                alert('傳送失敗，請檢查 GAS 權限設定');
+            } finally {
+                this.disabled = false;
+                this.innerText = '傳送給特定人 (GAS)';
+            }
+        });
     </script>
 </body>
 </html>
