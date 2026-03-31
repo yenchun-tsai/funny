@@ -10,59 +10,62 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background: linear-gradient(135deg, #1e3c72, #2a5298);
             color: white;
             text-align: center;
+            padding: 20px 0;
         }
         .container {
             background: rgba(255, 255, 255, 0.15);
-            padding: 3rem;
+            padding: 2rem;
             border-radius: 20px;
             backdrop-filter: blur(15px);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 400px;
+            max-width: 500px;
             width: 90%;
         }
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        h2 {
-            font-weight: normal;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        h2 { font-weight: normal; opacity: 0.9; margin-bottom: 1.5rem; }
+        
+        /* 計數器樣式 */
         .counter-box {
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: rgba(0, 0, 0, 0.25);
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        #count { font-size: 2rem; color: #00d2ff; font-weight: bold; }
+
+        /* 圖片上傳區域 */
+        .upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
             border-radius: 15px;
         }
-        #count {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #00d2ff;
-            display: block;
-            margin: 10px 0;
+        #preview {
+            max-width: 100%;
+            margin-top: 15px;
+            border-radius: 10px;
+            display: none; /* 預設隱藏，有圖才顯示 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        .reset-btn {
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+        
+        /* 按鈕樣式 */
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid white;
             color: white;
-            padding: 10px 20px;
-            border-radius: 50px;
+            padding: 8px 15px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
+            margin: 5px;
         }
-        .reset-btn:hover {
-            background-color: rgba(255, 71, 71, 0.6);
-            border-color: transparent;
-        }
+        .btn:hover { background: rgba(255, 255, 255, 0.4); }
+        input[type="file"] { margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -72,37 +75,55 @@
         <h2>蔡彥君歡迎您</h2>
         
         <div class="counter-box">
-            這是您第 <span id="count">0</span> 次造訪
+            您是第 <span id="count">0</span> 位訪客
         </div>
 
-        <button class="reset-btn" onclick="resetCounter()">重設計數器</button>
+        <div class="upload-section">
+            <p>📷 上傳一張照片看看：</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <br>
+            <img id="preview" src="" alt="圖片預覽">
+        </div>
+
+        <button class="btn" onclick="resetCounter()">重設計數器</button>
     </div>
 
     <script>
+        // 訪客計數邏輯
         const storageKey = 'yenchun_visit_count';
-
-        function updateCounter() {
-            let visits = localStorage.getItem(storageKey);
-            
-            if (visits === null) {
-                visits = 1;
-            } else {
-                visits = parseInt(visits) + 1;
-            }
-            
+        function initCounter() {
+            let visits = localStorage.getItem(storageKey) || 0;
+            visits = parseInt(visits) + 1;
             localStorage.setItem(storageKey, visits);
             document.getElementById('count').innerText = visits;
         }
 
         function resetCounter() {
-            if (confirm('確定要將造訪次數歸零嗎？')) {
+            if (confirm('確定要歸零嗎？')) {
                 localStorage.setItem(storageKey, 0);
                 document.getElementById('count').innerText = 0;
             }
         }
 
-        // 頁面載入後立即執行
-        updateCounter();
+        // 圖片上傳顯示邏輯
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block'; // 顯示圖片
+                }
+                
+                reader.readAsDataURL(file); // 讀取檔案內容
+            }
+        });
+
+        initCounter();
     </script>
 </body>
 </html>
