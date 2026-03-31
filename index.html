@@ -3,46 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎光臨</title>
+    <title>歡迎光臨 - 蔡彥君</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Microsoft JhengHei', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #74abe2, #5563b1);
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
             color: white;
             text-align: center;
         }
         .container {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             padding: 3rem;
             border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 400px;
+            width: 90%;
         }
         h1 {
-            font-size: 3rem;
+            font-size: 2.5rem;
             margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-        p {
-            font-size: 1.2rem;
+        h2 {
+            font-weight: normal;
             opacity: 0.9;
+            margin-bottom: 2rem;
         }
         .counter-box {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            display: inline-block;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 15px;
         }
         #count {
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: bold;
-            color: #ffd700;
+            color: #00d2ff;
+            display: block;
+            margin: 10px 0;
+        }
+        .reset-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .reset-btn:hover {
+            background-color: rgba(255, 71, 71, 0.6);
+            border-color: transparent;
         }
     </style>
 </head>
@@ -50,18 +69,20 @@
 
     <div class="container">
         <h1>歡迎光臨！</h1>
-        <p>很高興見到你，祝你有美好的一天。</p>
+        <h2>蔡彥君歡迎您</h2>
         
         <div class="counter-box">
-            這是您第 <span id="count">0</span> 次造訪此頁面
+            這是您第 <span id="count">0</span> 次造訪
         </div>
+
+        <button class="reset-btn" onclick="resetCounter()">重設計數器</button>
     </div>
 
     <script>
-        // 訪客計數邏輯
+        const storageKey = 'yenchun_visit_count';
+
         function updateCounter() {
-            // 從 localStorage 讀取次數，如果沒有則設為 0
-            let visits = localStorage.getItem('visit_count');
+            let visits = localStorage.getItem(storageKey);
             
             if (visits === null) {
                 visits = 1;
@@ -69,14 +90,18 @@
                 visits = parseInt(visits) + 1;
             }
             
-            // 存回 localStorage
-            localStorage.setItem('visit_count', visits);
-            
-            // 顯示在網頁上
+            localStorage.setItem(storageKey, visits);
             document.getElementById('count').innerText = visits;
         }
 
-        // 執行函式
+        function resetCounter() {
+            if (confirm('確定要將造訪次數歸零嗎？')) {
+                localStorage.setItem(storageKey, 0);
+                document.getElementById('count').innerText = 0;
+            }
+        }
+
+        // 頁面載入後立即執行
         updateCounter();
     </script>
 </body>
