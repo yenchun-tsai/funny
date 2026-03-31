@@ -137,18 +137,21 @@
             finally { this.disabled = false; this.innerText = '機器人傳送'; }
         });
 
-        // 4. 新功能：傳送到個人視窗 (URL Scheme)
-        personalBtn.addEventListener('click', function() {
-            const urlToSend = imgUrlInput.value.trim();
-            if (!urlToSend) { alert("請先輸入圖片網址！"); return; }
+  // 4. 修改後的功能：確保能成功彈出分享頁面
+personalBtn.addEventListener('click', function() {
+    const urlToSend = imgUrlInput.value.trim();
+    if (!urlToSend) { 
+        alert("請先輸入圖片網址！"); 
+        return; 
+    }
 
-            // 構建 LINE 分享連結
-            // 因為是圖片，我們傳送圖片網址，讓你在選擇對象後直接發出
-            const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(urlToSend)}`;
-            
-            // 跳轉到 LINE
-            window.location.href = lineUrl;
-        });
+    // 使用官方 Social Plugin 格式，支援度最高
+    // 參數 url: 要分享的連結 (圖片網址)
+    const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(urlToSend)}`;
+    
+    // 建議用 window.open 開啟新視窗，避免原本網頁被跳轉
+    window.open(lineShareUrl, '_blank', 'width=500,height=500');
+});
 
         const shareText = encodeURIComponent(`我是蔡彥君網頁的訪客！`);
         document.getElementById('lineShare').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${shareText}`;
