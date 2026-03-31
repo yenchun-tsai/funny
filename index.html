@@ -5,125 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>歡迎光臨 - 蔡彥君</title>
     <style>
-        body {
-            font-family: 'Microsoft JhengHei', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-            text-align: center;
-            padding: 20px 0;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 2rem;
-            border-radius: 20px;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 500px;
-            width: 90%;
-        }
-        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-        h2 { font-weight: normal; opacity: 0.9; margin-bottom: 1.5rem; }
-        
-        /* 計數器樣式 */
-        .counter-box {
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-        }
-        #count { font-size: 2rem; color: #00d2ff; font-weight: bold; }
-
-        /* 圖片上傳區域 */
-        .upload-section {
-            margin: 20px 0;
-            padding: 20px;
-            border: 2px dashed rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-        }
-        #preview {
-            max-width: 100%;
-            margin-top: 15px;
-            border-radius: 10px;
-            display: none; /* 預設隱藏，有圖才顯示 */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        
-        /* 按鈕樣式 */
-        .btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid white;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        .btn:hover { background: rgba(255, 255, 255, 0.4); }
-        input[type="file"] { margin-bottom: 10px; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
+        .container { background: rgba(255, 255, 255, 0.15); padding: 2rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
+        .counter-box { margin-bottom: 1.5rem; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; }
+        .btn { background: #00c300; border: none; color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn:disabled { background: #888; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>歡迎光臨！</h1>
-        <h2>蔡彥君歡迎您</h2>
-        
-        <div class="counter-box">
-            您是第 <span id="count">0</span> 位訪客
-        </div>
+        <h1>蔡彥君歡迎您</h1>
+        <div class="counter-box">造訪次數：<span id="count">0</span></div>
 
-        <div class="upload-section">
-            <p>📷 上傳一張照片看看：</p>
+        <div style="border: 2px dashed rgba(255,255,255,0.3); padding: 15px; border-radius: 10px;">
             <input type="file" id="fileInput" accept="image/*">
-            <br>
-            <img id="preview" src="" alt="圖片預覽">
+            <img id="preview">
+            <button class="btn" id="sendBtn" style="display:none;">立即傳送到我的 LINE</button>
         </div>
-
-        <button class="btn" onclick="resetCounter()">重設計數器</button>
     </div>
 
     <script>
-        // 訪客計數邏輯
-        const storageKey = 'yenchun_visit_count';
-        function initCounter() {
-            let visits = localStorage.getItem(storageKey) || 0;
-            visits = parseInt(visits) + 1;
-            localStorage.setItem(storageKey, visits);
-            document.getElementById('count').innerText = visits;
-        }
+        // 1. 填入你的 GAS 部署網址
+        const GAS_URL = https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec; 
 
-        function resetCounter() {
-            if (confirm('確定要歸零嗎？')) {
-                localStorage.setItem(storageKey, 0);
-                document.getElementById('count').innerText = 0;
-            }
-        }
+        // 計數器
+        const countSpan = document.getElementById('count');
+        let visits = localStorage.getItem('v_count') || 0;
+        visits++;
+        localStorage.setItem('v_count', visits);
+        countSpan.innerText = visits;
 
-        // 圖片上傳顯示邏輯
         const fileInput = document.getElementById('fileInput');
         const preview = document.getElementById('preview');
+        const sendBtn = document.getElementById('sendBtn');
+        let base64Image = null;
 
         fileInput.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
-                
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     preview.src = e.target.result;
-                    preview.style.display = 'block'; // 顯示圖片
-                }
-                
-                reader.readAsDataURL(file); // 讀取檔案內容
+                    preview.style.display = 'block';
+                    sendBtn.style.display = 'block';
+                    // 將圖片轉為數組以便傳送
+                    const arrayBuffer = reader.result;
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    base64Image = JSON.stringify(Array.from(uint8Array));
+                };
+                reader.readAsArrayBuffer(file);
             }
         });
 
-        initCounter();
+        sendBtn.addEventListener('click', async function() {
+            this.disabled = true;
+            this.innerText = '傳送中，請稍候...';
+
+            try {
+                const response = await fetch(GAS_URL + "?message=蔡彥君網頁收到新圖片！", {
+                    method: 'POST',
+                    mode: 'no-cors', // 重要：避開 CORS
+                    body: base64Image
+                });
+                alert('指令已送出！請查看您的 LINE 訊息。');
+            } catch (e) {
+                alert('傳送發生錯誤');
+            } finally {
+                this.disabled = false;
+                this.innerText = '立即傳送到我的 LINE';
+            }
+        });
     </script>
 </body>
 </html>
