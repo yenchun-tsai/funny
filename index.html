@@ -6,14 +6,20 @@
     <title>歡迎光臨 - 蔡彥君</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* 保持原本美化後的 CSS */
         body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
         .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
         .counter-box { margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; display: flex; justify-content: center; align-items: center; gap: 10px; }
         .btn-reset { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; transition: 0.3s; }
         .btn-reset:hover { color: #ff4d4d; transform: rotate(90deg); }
         .input-group { margin: 20px 0; text-align: left; }
-        .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 14px; margin-top: 8px; margin-bottom: 10px; }
+        .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); }
+        
+        /* 新增：顯示轉換後 URL 的樣式 */
+        .result-group { margin-top: 15px; text-align: left; display: none; }
+        .result-url-wrapper { display: flex; gap: 5px; margin-top: 5px; }
+        .result-url-wrapper input { flex-grow: 1; padding: 8px; border-radius: 5px; border: none; font-size: 12px; background: #eee; color: #333; }
+        .btn-copy { background: #555; color: white; border: none; padding: 0 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+
         .file-label { display: block; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; text-align: center; font-size: 14px; }
         #fileInput { display: none; }
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
@@ -47,6 +53,14 @@
 
         <img id="preview">
 
+        <div id="resultGroup" class="result-group">
+            <label style="font-size: 12px;"><i class="fas fa-share-alt"></i> GitHub 圖片直接連結：</label>
+            <div class="result-url-wrapper">
+                <input type="text" id="finalUrl" readonly>
+                <button class="btn-copy" id="copyBtn">複製</button>
+            </div>
+        </div>
+
         <div class="action-row">
             <div class="btn-group">
                 <button class="btn-gas" id="gasBtn">機器人傳送</button>
@@ -56,7 +70,7 @@
     </div>
 
     <script>
-        const GAS_URL = '你的_GAS_部署網址'; //
+        const GAS_URL = '你的_GAS_部署網址'; 
 
         const imgUrlInput = document.getElementById('imgUrlInput');
         const fileInput = document.getElementById('fileInput');
@@ -64,18 +78,26 @@
         const preview = document.getElementById('preview');
         const gasBtn = document.getElementById('gasBtn');
         const personalBtn = document.getElementById('personalBtn');
+        
+        // 新增元素
+        const resultGroup = document.getElementById('resultGroup');
+        const finalUrlInput = document.getElementById('finalUrl');
+        const copyBtn = document.getElementById('copyBtn');
 
-        // 更新預覽功能
         function updatePreview(url) {
             if (url) {
                 preview.src = url;
                 preview.style.display = 'block';
+                // 顯示 URL 區塊
+                finalUrlInput.value = url;
+                resultGroup.style.display = 'block';
             } else {
                 preview.style.display = 'none';
+                resultGroup.style.display = 'none';
             }
         }
 
-        // 處理圖片上傳 (透過 GAS 轉傳 GitHub)
+        // 處理圖片上傳
         fileInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -98,7 +120,7 @@
                     const result = await response.json();
                     if (result.success) {
                         imgUrlInput.value = result.url;
-                        updatePreview(result.url);
+                        updatePreview(result.url); // 同步更新預覽與顯示連結
                         fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 成功存至 GitHub！';
                     } else {
                         alert("上傳失敗：" + result.error);
@@ -112,7 +134,16 @@
             };
         });
 
-        // 機器人傳送邏輯 (維持 GET 請求)
+        // 複製功能
+        copyBtn.addEventListener('click', function() {
+            finalUrlInput.select();
+            document.execCommand('copy');
+            const originalText = copyBtn.innerText;
+            copyBtn.innerText = '已複製';
+            setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
+        });
+
+        // 機器人傳送
         gasBtn.addEventListener('click', async function() {
             const urlToSend = imgUrlInput.value.trim();
             if (!urlToSend) { alert("請先上傳圖片！"); return; }
@@ -124,7 +155,7 @@
             finally { this.disabled = false; }
         });
 
-        // 個人視窗分享邏輯
+        // 個人視窗分享
         personalBtn.addEventListener('click', function() {
             const urlToSend = imgUrlInput.value.trim();
             if (!urlToSend) { alert("請先上傳圖片！"); return; }
