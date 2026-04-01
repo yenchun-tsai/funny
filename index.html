@@ -33,9 +33,9 @@
         <div class="input-group">
             <label><i class="fas fa-desktop"></i> 第一步：上傳圖片</label>
             <label for="fileInput" class="file-label" id="fileLabel">
-                <i class="fas fa-cloud-upload-alt"></i> 選擇檔案
+                <i class="fas fa-cloud-upload-alt"></i> 選擇檔案 (限圖片)
             </label>
-            <input type="file" id="fileInput" accept="image/*" style="display:none;">
+            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/gif" style="display:none;">
             <input type="text" id="imgUrlInput" class="url-input" placeholder="產生的 URL 會顯示在這裡" readonly>
         </div>
 
@@ -72,29 +72,22 @@
 
         let timerInterval;
 
-        // 初始化：偵測 IP 與 地理位置
         (async function fetchLocationData() {
             try {
-                // 使用 ip-api.com 取得地理資訊 (http 版較穩定，若部署在 https 可能需換服務)
                 const response = await fetch('http://ip-api.com/json/');
                 const data = await response.json();
-                
                 if (data.status === "success") {
                     document.getElementById('userLocation').innerText = `${data.country} - ${data.city}`;
                     document.getElementById('userIp').innerText = data.query;
-                } else {
-                    throw new Error("Geo API error");
                 }
             } catch (e) {
-                // 備用方案：如果上面失敗，只抓 IP
                 try {
                     const res = await fetch('https://api.ipify.org?format=json');
                     const d = await res.json();
                     document.getElementById('userIp').innerText = d.ip;
-                    document.getElementById('userLocation').innerText = "未知地區";
+                    document.getElementById('userLocation').innerText = "無法解析地區";
                 } catch(err) {
                     document.getElementById('userIp').innerText = "無法偵測";
-                    document.getElementById('userLocation').innerText = "無法偵測";
                 }
             }
         })();
@@ -106,6 +99,14 @@
         document.getElementById('fileInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
+
+            // === 檔案類型驗證 ===
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                alert("格式錯誤！僅允許上傳圖片檔案 (JPG, PNG, GIF)。");
+                this.value = ""; // 清空選取內容
+                return;
+            }
 
             const label = document.getElementById('fileLabel');
             const status = document.getElementById('statusInfo');
@@ -129,18 +130,12 @@
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64 = reader.result.split(',')[1];
-                
                 try {
                     const response = await fetch(_sysConfig(), {
                         method: 'POST',
-                        body: JSON.stringify({
-                            name: file.name,
-                            content: base64
-                        })
+                        body: JSON.stringify({ name: file.name, content: base64 })
                     });
-                    
                     const result = await response.json();
-                    
                     if (result.success) {
                         clearInterval(timerInterval);
                         document.getElementById('doneTime').innerText = new Date().toLocaleString();
@@ -149,18 +144,14 @@
                         document.getElementById('preview').src = result.url;
                         document.getElementById('preview').style.display = 'block';
                         panel.style.display = 'block';
-                        
                         label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功';
                         gasBtn.disabled = false;
-                        status.innerText = "一切就緒，可傳送訊息！";
-                    } else {
-                        throw new Error(result.error);
-                    }
+                        status.innerText = "一切就緒！";
+                    } else { throw new Error(result.error); }
                 } catch (err) {
                     clearInterval(timerInterval);
                     alert("錯誤：" + err.message);
                     label.innerHTML = '點擊重試';
-                    status.innerText = "連線失敗，請檢查設定。";
                 }
             };
         });
@@ -168,7 +159,7 @@
         document.getElementById('gasBtn').addEventListener('click', async function() {
             const url = document.getElementById('finalUrl').value;
             this.disabled = true;
-            this.innerText = "指令發送中...";
+            this.innerText = "傳送中...";
             try {
                 await fetch(`${_sysConfig()}?imgUrl=${encodeURIComponent(url)}`, { mode: 'no-cors' });
                 alert('已發送指令！請去 LINE 查看圖片。');
