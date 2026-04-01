@@ -72,7 +72,7 @@
     </div>
 
     <script>
-        // 請務必更新為你最新部署的 GAS 網址
+        // 請確保這是最新的 GAS 部署網址（末尾為 /exec）
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec'; 
 
         const imgUrlInput = document.getElementById('imgUrlInput');
@@ -108,15 +108,20 @@
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64Content = reader.result.split(',')[1];
+                
+                // 修正：使用 URLSearchParams 來發送 POST，這對 GAS 的 CORS 相容性最高
+                const formData = new URLSearchParams();
+                formData.append('name', file.name);
+                formData.append('content', base64Content);
+
                 try {
-                    // 使用 POST 請求，並顯式宣告 mode: 'cors'
                     const response = await fetch(GAS_URL, {
                         method: 'POST',
-                        mode: 'cors', 
-                        body: JSON.stringify({
-                            name: file.name,
-                            content: base64Content
-                        })
+                        mode: 'cors', // 必須開啟 CORS
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: formData.toString()
                     });
                     
                     const result = await response.json();
@@ -126,11 +131,11 @@
                         updatePreview(result.url);
                         fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 成功存至 GitHub！';
                     } else {
-                        throw new Error(result.error || '未知錯誤');
+                        throw new Error(result.error || 'GAS 回傳失敗');
                     }
                 } catch (err) {
-                    console.error('Error:', err);
-                    alert("連線失敗！請檢查：\n1. GAS 部署是否設為「所有人」\n2. 是否更換了最新部署網址\n3. 網路是否正常");
+                    console.error('Error Details:', err);
+                    alert("連線仍被攔截！請確認：\n1. GAS 部署是否設為「所有人」(Anyone)\n2. GAS 程式碼是否有使用 JSON 回傳\n3. 試試看使用「無痕視窗」測試");
                     fileLabel.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 上傳失敗';
                 } finally {
                     gasBtn.disabled = false;
@@ -139,6 +144,7 @@
             };
         });
 
+        // 複製功能優化
         copyBtn.addEventListener('click', function() {
             finalUrlInput.select();
             finalUrlInput.setSelectionRange(0, 99999); 
@@ -146,6 +152,11 @@
                 const originalText = copyBtn.innerText;
                 copyBtn.innerText = '已複製';
                 setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
+            }).catch(err => {
+                // 備用複製方案
+                document.execCommand('copy');
+                copyBtn.innerText = '已複製';
+                setTimeout(() => { copyBtn.innerText = '複製'; }, 2000);
             });
         });
 
@@ -154,7 +165,6 @@
             if (!urlToSend) { alert("請先上傳圖片或輸入網址！"); return; }
             this.disabled = true;
             try {
-                // 機器人傳送通常使用 GET 觸發
                 await fetch(`${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`, { mode: 'no-cors' });
                 alert('發送指令成功！');
             } catch (e) { 
