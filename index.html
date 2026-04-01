@@ -14,11 +14,11 @@
         .input-group { margin: 20px 0; text-align: left; }
         .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); color: #333; }
         
-        /* 轉換後 URL 顯示區塊 */
-        .result-group { margin-top: 15px; text-align: left; display: none; }
-        .result-url-wrapper { display: flex; gap: 5px; margin-top: 5px; }
-        .result-url-wrapper input { flex-grow: 1; padding: 8px; border-radius: 5px; border: none; font-size: 12px; background: #f0f0f0; color: #333; }
-        .btn-copy { background: #555; color: white; border: none; padding: 0 12px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: 0.3s; }
+        /* 修正：預設就顯示 URL 區塊 */
+        .result-group { margin-top: 15px; text-align: left; display: block; background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .result-url-wrapper { display: flex; gap: 5px; margin-top: 8px; }
+        .result-url-wrapper input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; font-size: 12px; background: #f0f0f0; color: #333; outline: none; font-weight: bold; }
+        .btn-copy { background: #555; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: 0.3s; white-space: nowrap; }
         .btn-copy:hover { background: #333; }
 
         .file-label { display: block; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; text-align: center; font-size: 14px; }
@@ -56,10 +56,10 @@
         <img id="preview">
 
         <div id="resultGroup" class="result-group">
-            <label style="font-size: 12px;"><i class="fas fa-share-alt"></i> GitHub 圖片直接連結：</label>
+            <label style="font-size: 12px; color: #fff; font-weight: bold;"><i class="fas fa-share-alt"></i> GitHub 圖片直接連結：</label>
             <div class="result-url-wrapper">
-                <input type="text" id="finalUrl" readonly>
-                <button class="btn-copy" id="copyBtn">複製</button>
+                <input type="text" id="finalUrl" placeholder="等待上傳圖片中..." readonly>
+                <button class="btn-copy" id="copyBtn">複製連結</button>
             </div>
         </div>
 
@@ -72,7 +72,6 @@
     </div>
 
     <script>
-        // 請確保這是最新的 GAS 部署網址（末尾為 /exec）
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec'; 
 
         const imgUrlInput = document.getElementById('imgUrlInput');
@@ -81,7 +80,6 @@
         const preview = document.getElementById('preview');
         const gasBtn = document.getElementById('gasBtn');
         const personalBtn = document.getElementById('personalBtn');
-        const resultGroup = document.getElementById('resultGroup');
         const finalUrlInput = document.getElementById('finalUrl');
         const copyBtn = document.getElementById('copyBtn');
 
@@ -89,11 +87,7 @@
             if (url) {
                 preview.src = url;
                 preview.style.display = 'block';
-                finalUrlInput.value = url;
-                resultGroup.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-                resultGroup.style.display = 'none';
+                finalUrlInput.value = url; // 直接更新欄位內容
             }
         }
 
@@ -103,13 +97,13 @@
 
             gasBtn.disabled = true;
             fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
+            finalUrlInput.value = "處理中，請稍候...";
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64Content = reader.result.split(',')[1];
                 
-                // 修正：使用 URLSearchParams 來發送 POST，這對 GAS 的 CORS 相容性最高
                 const formData = new URLSearchParams();
                 formData.append('name', file.name);
                 formData.append('content', base64Content);
@@ -117,10 +111,8 @@
                 try {
                     const response = await fetch(GAS_URL, {
                         method: 'POST',
-                        mode: 'cors', // 必須開啟 CORS
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: formData.toString()
                     });
                     
@@ -129,13 +121,14 @@
                     if (result.success) {
                         imgUrlInput.value = result.url;
                         updatePreview(result.url);
-                        fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 成功存至 GitHub！';
+                        fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功！';
                     } else {
                         throw new Error(result.error || 'GAS 回傳失敗');
                     }
                 } catch (err) {
                     console.error('Error Details:', err);
-                    alert("連線仍被攔截！請確認：\n1. GAS 部署是否設為「所有人」(Anyone)\n2. GAS 程式碼是否有使用 JSON 回傳\n3. 試試看使用「無痕視窗」測試");
+                    finalUrlInput.value = "上傳失敗，請檢查設定";
+                    alert("連線失敗！請確認 GAS 已部署為「所有人」。");
                     fileLabel.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 上傳失敗';
                 } finally {
                     gasBtn.disabled = false;
@@ -144,19 +137,16 @@
             };
         });
 
-        // 複製功能優化
         copyBtn.addEventListener('click', function() {
+            if (!finalUrlInput.value || finalUrlInput.value.includes("等待")) {
+                alert("目前沒有可複製的網址喔！");
+                return;
+            }
             finalUrlInput.select();
-            finalUrlInput.setSelectionRange(0, 99999); 
             navigator.clipboard.writeText(finalUrlInput.value).then(() => {
                 const originalText = copyBtn.innerText;
                 copyBtn.innerText = '已複製';
                 setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
-            }).catch(err => {
-                // 備用複製方案
-                document.execCommand('copy');
-                copyBtn.innerText = '已複製';
-                setTimeout(() => { copyBtn.innerText = '複製'; }, 2000);
             });
         });
 
@@ -167,11 +157,7 @@
             try {
                 await fetch(`${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`, { mode: 'no-cors' });
                 alert('發送指令成功！');
-            } catch (e) { 
-                alert('傳送失敗'); 
-            } finally { 
-                this.disabled = false; 
-            }
+            } catch (e) { alert('傳送失敗'); } finally { this.disabled = false; }
         });
 
         personalBtn.addEventListener('click', function() {
