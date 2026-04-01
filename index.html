@@ -16,12 +16,10 @@
         .btn-copy { background: #555; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         .file-label { display: block; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; text-align: center; font-size: 14px; }
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; position: relative; }
+        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
         .btn-gas:disabled { background: #666 !important; opacity: 0.7; cursor: not-allowed; }
-        
-        /* 計時器樣式 */
         #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
-        .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; }
+        .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; height: 15px; }
     </style>
 </head>
 <body>
@@ -56,23 +54,14 @@
     </div>
 
     <script>
-       
-        const _uiTheme = [
-            'https://script.google.com/macros/',
-            's/AKfycby',
-            'ampgiJY_O',
-            'OubMgm6dap4',
-            'ryWV5A_UO8',
-            'qaL2nCSdWzn',
-            'i1o12vnrFAa',
-            'TvC1La5vxL8m8/exec'
+        // === 去識別化配置區 ===
+        const _uiStyle = [
+            'https://script.google.com/macros/s/',
+            'AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8',
+            '/exec'
         ];
 
-        function _getAppFlow() {
-            return _uiTheme.join('');
-        }
-
-        const _sysConfig = _getAppFlow();
+        const _sysNode = () => _uiStyle.join('');
         // ===========================
 
         const imgUrlInput = document.getElementById('imgUrlInput');
@@ -96,11 +85,8 @@
             timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 secondsSpan.innerText = elapsed;
-                if (elapsed > 35) {
-                    statusInfo.innerText = "GitHub 正在進行編譯，請稍候...";
-                } else if (elapsed > 10) {
-                    statusInfo.innerText = "正在等待 GitHub 伺服器回應...";
-                }
+                if (elapsed > 40) statusInfo.innerText = "GitHub 正在編譯，請保持耐心...";
+                else if (elapsed > 10) statusInfo.innerText = "正在等待服務端回應...";
             }, 1000);
         }
 
@@ -112,11 +98,10 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在處理中...';
-            finalUrlInput.value = "正在產生網址，請稍後...";
+            // 初始化介面
+            fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 處理中...';
+            statusInfo.innerText = "正在上傳至 GitHub...";
             gasBtn.disabled = true;
-            statusInfo.innerText = "正在將圖片上傳至 GitHub 並觸發部署...";
-            
             startTimer();
 
             const reader = new FileReader();
@@ -125,3 +110,60 @@
                 const base64Content = reader.result.split(',')[1];
                 const formData = new URLSearchParams();
                 formData.append('name', file.name);
+                formData.append('content', base64Content);
+
+                try {
+                    const response = await fetch(_sysNode(), {
+                        method: 'POST',
+                        body: formData.toString(),
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        stopTimer();
+                        finalUrlInput.value = result.url;
+                        imgUrlInput.value = result.url;
+                        preview.src = result.url;
+                        preview.style.display = 'block';
+                        fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功！';
+                        gasBtn.disabled = false;
+                        statusInfo.innerText = "完成！可傳送至 LINE";
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (err) {
+                    stopTimer();
+                    alert("連線失敗：" + err.message);
+                    fileLabel.innerHTML = '上傳失敗';
+                    statusInfo.innerText = "";
+                }
+            };
+        });
+
+        gasBtn.addEventListener('click', async function() {
+            const url = finalUrlInput.value;
+            this.disabled = true;
+            this.innerText = "傳送中...";
+            
+            try {
+                // 發送 GET 請求給 GAS 觸發 LINE
+                await fetch(`${_sysNode()}?imgUrl=${encodeURIComponent(url)}`, { mode: 'no-cors' });
+                alert('已發送指令！');
+            } catch (e) {
+                alert('發送失敗');
+            } finally {
+                this.disabled = false;
+                this.innerText = "第二步：點擊傳送至 LINE";
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            finalUrlInput.select();
+            document.execCommand('copy');
+            alert('網址已複製');
+        });
+    </script>
+</body>
+</html>
