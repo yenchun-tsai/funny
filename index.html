@@ -12,15 +12,17 @@
         .btn-reset { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; transition: 0.3s; }
         .btn-reset:hover { color: #ff4d4d; transform: rotate(90deg); }
         .input-group { margin: 20px 0; text-align: left; }
-        .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); }
+        .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); color: #333; }
         
-        /* 新增：顯示轉換後 URL 的樣式 */
+        /* 轉換後 URL 顯示區塊 */
         .result-group { margin-top: 15px; text-align: left; display: none; }
         .result-url-wrapper { display: flex; gap: 5px; margin-top: 5px; }
-        .result-url-wrapper input { flex-grow: 1; padding: 8px; border-radius: 5px; border: none; font-size: 12px; background: #eee; color: #333; }
-        .btn-copy { background: #555; color: white; border: none; padding: 0 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .result-url-wrapper input { flex-grow: 1; padding: 8px; border-radius: 5px; border: none; font-size: 12px; background: #f0f0f0; color: #333; }
+        .btn-copy { background: #555; color: white; border: none; padding: 0 12px; border-radius: 5px; cursor: pointer; font-size: 12px; transition: 0.3s; }
+        .btn-copy:hover { background: #333; }
 
         .file-label { display: block; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; text-align: center; font-size: 14px; }
+        .file-label:hover { background: rgba(255,255,255,0.3); }
         #fileInput { display: none; }
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .action-row { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
@@ -28,7 +30,7 @@
         .btn-gas, .btn-personal { border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; flex-grow: 1; transition: 0.3s; font-size: 14px; }
         .btn-gas { background: #00c300; }
         .btn-personal { background: #007bff; }
-        .btn-gas:disabled, .btn-personal:disabled { background: #666; cursor: wait; }
+        .btn-gas:disabled, .btn-personal:disabled { background: #666 !important; cursor: wait; }
     </style>
 </head>
 <body>
@@ -70,7 +72,8 @@
     </div>
 
     <script>
-        const GAS_URL = '你的_GAS_部署網址'; 
+        // 請務必更新為你最新部署的 GAS 網址
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec'; 
 
         const imgUrlInput = document.getElementById('imgUrlInput');
         const fileInput = document.getElementById('fileInput');
@@ -78,8 +81,6 @@
         const preview = document.getElementById('preview');
         const gasBtn = document.getElementById('gasBtn');
         const personalBtn = document.getElementById('personalBtn');
-        
-        // 新增元素
         const resultGroup = document.getElementById('resultGroup');
         const finalUrlInput = document.getElementById('finalUrl');
         const copyBtn = document.getElementById('copyBtn');
@@ -88,7 +89,6 @@
             if (url) {
                 preview.src = url;
                 preview.style.display = 'block';
-                // 顯示 URL 區塊
                 finalUrlInput.value = url;
                 resultGroup.style.display = 'block';
             } else {
@@ -97,69 +97,78 @@
             }
         }
 
-        // 處理圖片上傳
         fileInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
             gasBtn.disabled = true;
-            fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 安全上傳中...';
+            fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64Content = reader.result.split(',')[1];
                 try {
+                    // 使用 POST 請求，並顯式宣告 mode: 'cors'
                     const response = await fetch(GAS_URL, {
                         method: 'POST',
+                        mode: 'cors', 
                         body: JSON.stringify({
                             name: file.name,
                             content: base64Content
                         })
                     });
+                    
                     const result = await response.json();
+                    
                     if (result.success) {
                         imgUrlInput.value = result.url;
-                        updatePreview(result.url); // 同步更新預覽與顯示連結
+                        updatePreview(result.url);
                         fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 成功存至 GitHub！';
                     } else {
-                        alert("上傳失敗：" + result.error);
+                        throw new Error(result.error || '未知錯誤');
                     }
                 } catch (err) {
-                    alert("連線 GAS 發生錯誤，請檢查網址與權限。");
+                    console.error('Error:', err);
+                    alert("連線失敗！請檢查：\n1. GAS 部署是否設為「所有人」\n2. 是否更換了最新部署網址\n3. 網路是否正常");
+                    fileLabel.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 上傳失敗';
                 } finally {
                     gasBtn.disabled = false;
-                    setTimeout(() => { fileLabel.innerHTML = '點擊選擇電腦中的圖片'; }, 3000);
+                    setTimeout(() => { fileLabel.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 點擊選擇電腦中的圖片'; }, 3000);
                 }
             };
         });
 
-        // 複製功能
         copyBtn.addEventListener('click', function() {
             finalUrlInput.select();
-            document.execCommand('copy');
-            const originalText = copyBtn.innerText;
-            copyBtn.innerText = '已複製';
-            setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
+            finalUrlInput.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(finalUrlInput.value).then(() => {
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = '已複製';
+                setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
+            });
         });
 
-        // 機器人傳送
         gasBtn.addEventListener('click', async function() {
             const urlToSend = imgUrlInput.value.trim();
-            if (!urlToSend) { alert("請先上傳圖片！"); return; }
+            if (!urlToSend) { alert("請先上傳圖片或輸入網址！"); return; }
             this.disabled = true;
             try {
+                // 機器人傳送通常使用 GET 觸發
                 await fetch(`${GAS_URL}?imgUrl=${encodeURIComponent(urlToSend)}`, { mode: 'no-cors' });
-                alert('已發送請求！');
-            } catch (e) { alert('傳送失敗'); }
-            finally { this.disabled = false; }
+                alert('發送指令成功！');
+            } catch (e) { 
+                alert('傳送失敗'); 
+            } finally { 
+                this.disabled = false; 
+            }
         });
 
-        // 個人視窗分享
         personalBtn.addEventListener('click', function() {
             const urlToSend = imgUrlInput.value.trim();
             if (!urlToSend) { alert("請先上傳圖片！"); return; }
-            window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(urlToSend)}`, '_blank', 'width=500,height=500');
+            const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(urlToSend)}`;
+            window.open(lineUrl, '_blank', 'width=500,height=500');
         });
     </script>
 </body>
