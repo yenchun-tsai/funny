@@ -65,13 +65,15 @@
     </div>
 
     <script>
-        const _p1 = 'https://script.google.com/macros/s/';
-        const _p2 = 'AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8';
-        const _p3 = '/exec';
-        const _sysConfig = () => _p1 + _p2 + _p3;
+        // === 1. 去識別化與金鑰混淆 ===
+        const _p = ['https://script.google.com/macros/s/', 'AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8', '/exec'];
+        const _u = () => _p.join('');
+        // 金鑰採 Base64 混淆 (YenChun_Sec_2026_x9Az)
+        const _k = atob('WWVuQ2h1bl9TZWNfMjAyNl94OUF6'); 
 
         let timerInterval;
 
+        // === 2. 地理位置偵測 ===
         (async function fetchLocationData() {
             try {
                 const response = await fetch('http://ip-api.com/json/');
@@ -92,19 +94,21 @@
             }
         })();
 
+        // === 3. 重新上傳邏輯 ===
         document.getElementById('resetBtn').addEventListener('click', () => {
             location.reload(); 
         });
 
+        // === 4. 檔案選擇與驗證 ===
         document.getElementById('fileInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // === 檔案類型驗證 ===
+            // 檔案類型驗證
             const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
             if (!allowedTypes.includes(file.type)) {
                 alert("格式錯誤！僅允許上傳圖片檔案 (JPG, PNG, GIF)。");
-                this.value = ""; // 清空選取內容
+                this.value = "";
                 return;
             }
 
@@ -130,12 +134,20 @@
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64 = reader.result.split(',')[1];
+                
                 try {
-                    const response = await fetch(_sysConfig(), {
+                    // 發送 POST 請求，包含驗證金鑰
+                    const response = await fetch(_u(), {
                         method: 'POST',
-                        body: JSON.stringify({ name: file.name, content: base64 })
+                        body: JSON.stringify({
+                            name: file.name,
+                            content: base64,
+                            secret: _k // 帶入混淆後的 Secret
+                        })
                     });
+                    
                     const result = await response.json();
+                    
                     if (result.success) {
                         clearInterval(timerInterval);
                         document.getElementById('doneTime').innerText = new Date().toLocaleString();
@@ -144,24 +156,30 @@
                         document.getElementById('preview').src = result.url;
                         document.getElementById('preview').style.display = 'block';
                         panel.style.display = 'block';
+                        
                         label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功';
                         gasBtn.disabled = false;
                         status.innerText = "一切就緒！";
-                    } else { throw new Error(result.error); }
+                    } else {
+                        throw new Error(result.error || "金鑰驗證失敗或其他錯誤");
+                    }
                 } catch (err) {
                     clearInterval(timerInterval);
                     alert("錯誤：" + err.message);
                     label.innerHTML = '點擊重試';
+                    status.innerText = "請檢查金鑰或網路連線。";
                 }
             };
         });
 
+        // === 5. 傳送 LINE 訊息 ===
         document.getElementById('gasBtn').addEventListener('click', async function() {
             const url = document.getElementById('finalUrl').value;
             this.disabled = true;
-            this.innerText = "傳送中...";
+            this.innerText = "指令發送中...";
             try {
-                await fetch(`${_sysConfig()}?imgUrl=${encodeURIComponent(url)}`, { mode: 'no-cors' });
+                // 發送 GET 請求給 GAS (注意：若 GAS 有檢查 Secret，GET 也要補上，此處維持簡潔)
+                await fetch(`${_u()}?imgUrl=${encodeURIComponent(url)}&secret=${encodeURIComponent(_k)}`, { mode: 'no-cors' });
                 alert('已發送指令！請去 LINE 查看圖片。');
             } catch (e) {
                 alert('傳送失敗');
@@ -171,6 +189,7 @@
             }
         });
 
+        // === 6. 輔助功能 (複製網址) ===
         document.getElementById('copyBtn').addEventListener('click', () => {
             const copyText = document.getElementById('finalUrl');
             copyText.select();
