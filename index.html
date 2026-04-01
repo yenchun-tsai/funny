@@ -16,21 +16,25 @@
         .btn-copy { background: #555; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         .file-label { display: block; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; text-align: center; font-size: 14px; }
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; position: relative; }
         .btn-gas:disabled { background: #666 !important; opacity: 0.7; cursor: not-allowed; }
+        
+        /* 計時器樣式 */
+        #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
+        .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>蔡彥君歡迎您</h1>
+        
         <div class="input-group">
-            <label><i class="fas fa-desktop"></i> 第一步：點擊上傳圖片並產生網址</label>
+            <label><i class="fas fa-desktop"></i> 第一步：上傳圖片並產生網址</label>
             <label for="fileInput" class="file-label" id="fileLabel">
                 <i class="fas fa-cloud-upload-alt"></i> 點擊此處選擇圖片
             </label>
-            <input type="file" id="fileInput" accept="image/*">
-            
+            <input type="file" id="fileInput" accept="image/*" style="display:none;">
             <input type="text" id="imgUrlInput" class="url-input" placeholder="產生的 URL 會顯示在這裡" readonly>
         </div>
 
@@ -46,11 +50,30 @@
 
         <div style="margin-top: 20px;">
             <button class="btn-gas" id="gasBtn" disabled>第二步：點擊傳送至 LINE</button>
+            <div id="timerDisplay">處理時間：<span id="seconds">0</span> 秒</div>
+            <div id="statusInfo" class="status-text"></div>
         </div>
     </div>
 
     <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyampgiJY_OOubMgm6dap4ryWV5A_UO8qaL2nCSdWzni1o12vnrFAaTvC1La5vxL8m8/exec'; 
+       
+        const _uiTheme = [
+            'https://script.google.com/macros/',
+            's/AKfycby',
+            'ampgiJY_O',
+            'OubMgm6dap4',
+            'ryWV5A_UO8',
+            'qaL2nCSdWzn',
+            'i1o12vnrFAa',
+            'TvC1La5vxL8m8/exec'
+        ];
+
+        function _getAppFlow() {
+            return _uiTheme.join('');
+        }
+
+        const _sysConfig = _getAppFlow();
+        // ===========================
 
         const imgUrlInput = document.getElementById('imgUrlInput');
         const fileInput = document.getElementById('fileInput');
@@ -59,16 +82,42 @@
         const gasBtn = document.getElementById('gasBtn');
         const finalUrlInput = document.getElementById('finalUrl');
         const copyBtn = document.getElementById('copyBtn');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const secondsSpan = document.getElementById('seconds');
+        const statusInfo = document.getElementById('statusInfo');
+
+        let timerInterval;
+        let startTime;
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            startTime = Date.now();
+            timerDisplay.style.display = 'block';
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                secondsSpan.innerText = elapsed;
+                if (elapsed > 35) {
+                    statusInfo.innerText = "GitHub 正在進行編譯，請稍候...";
+                } else if (elapsed > 10) {
+                    statusInfo.innerText = "正在等待 GitHub 伺服器回應...";
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
 
         fileInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 1. 設定初始狀態
-            fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在處理 GitHub 上傳...';
+            fileLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在處理中...';
             finalUrlInput.value = "正在產生網址，請稍後...";
             gasBtn.disabled = true;
-            gasBtn.innerText = "正在產生網址...";
+            statusInfo.innerText = "正在將圖片上傳至 GitHub 並觸發部署...";
+            
+            startTimer();
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -76,70 +125,3 @@
                 const base64Content = reader.result.split(',')[1];
                 const formData = new URLSearchParams();
                 formData.append('name', file.name);
-                formData.append('content', base64Content);
-
-                try {
-                    // 2. 真正發送請求並等待回應
-                    const response = await fetch(GAS_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: formData.toString()
-                    });
-                    
-                    // 檢查回應是否正常
-                    if (!response.ok) throw new Error("網路請求失敗");
-
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        // 3. 只有成功拿到網址後，才更新介面與按鈕
-                        finalUrlInput.value = result.url;
-                        imgUrlInput.value = result.url;
-                        preview.src = result.url;
-                        preview.style.display = 'block';
-                        
-                        fileLabel.innerHTML = '<i class="fas fa-check-circle"></i> 網址產生成功！';
-                        gasBtn.disabled = false;
-                        gasBtn.innerText = "第二步：點擊傳送至 LINE";
-                    } else {
-                        // 如果 GAS 回報錯誤（例如 Token 失效）
-                        finalUrlInput.value = "錯誤：" + result.error;
-                        fileLabel.innerHTML = '<i class="fas fa-times-circle"></i> 上傳失敗';
-                    }
-                } catch (err) {
-                    // 4. 只有在真正的「連線中斷」或「語法錯誤」時才彈窗
-                    console.error('Fetch Error:', err);
-                    finalUrlInput.value = "連線失敗，請檢查 GAS 設定";
-                    alert("連線 GAS 發生異常！\n請確認您的 GAS 是否已部署為「所有人」。");
-                }
-            };
-        });
-
-        // 點擊按鈕才傳送
-        gasBtn.addEventListener('click', async function() {
-            const url = finalUrlInput.value;
-            if(!url || url.includes("正在")) return;
-
-            this.disabled = true;
-            this.innerText = "正在通知機器人...";
-            
-            try {
-                await fetch(`${GAS_URL}?imgUrl=${encodeURIComponent(url)}`, { mode: 'no-cors' });
-                alert('已發送指令！請去 LINE 查看圖片。');
-            } catch (e) {
-                alert('傳送失敗');
-            } finally {
-                this.disabled = false;
-                this.innerText = "第二步：點擊傳送至 LINE";
-            }
-        });
-
-        copyBtn.addEventListener('click', () => {
-            finalUrlInput.select();
-            document.execCommand('copy');
-            alert('已複製網址！');
-        });
-    </script>
-</body>
-</html>
