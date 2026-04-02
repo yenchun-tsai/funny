@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
-        .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
+        .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; margin: 20px auto; }
         .input-group { margin: 20px 0; text-align: left; }
         .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); color: #333; }
         .result-group { margin-top: 15px; text-align: left; background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; }
@@ -23,10 +23,83 @@
         #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
         .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; height: 1.2em; }
         
-        /* 通行碼區塊樣式 */
         .passcode-section { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
-        .passcode-section input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; padding: 4px 8px; width: 80px; outline: none; transition: 0.3s; }
-        .passcode-section input:focus { border-color: #00c300; }
+        .passcode-section input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; padding: 4px 8px; width: 80px; outline: none; }
         .btn-verify { background: #555; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
 
-        #debugPanel { margin-top: 20px;
+        #debugPanel { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.85); border-radius: 10px; font-size: 11px; text-align: left; display: none; color: #00ff00; font-family: 'Consolas', monospace; border: 1px solid #555; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>蔡彥君歡迎您</h1>
+        
+        <div class="input-group">
+            <label><i class="fas fa-desktop"></i> 第一步：上傳圖片</label>
+            <label for="fileInput" class="file-label" id="fileLabel">
+                <i class="fas fa-cloud-upload-alt"></i> 選擇檔案 (限圖片)
+            </label>
+            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/gif" style="display:none;">
+            <input type="text" id="imgUrlInput" class="url-input" placeholder="產生的 URL 會顯示在這裡" readonly>
+        </div>
+
+        <img id="preview">
+
+        <div id="resultGroup" class="result-group">
+            <label style="font-size: 11px;"><i class="fas fa-share-alt"></i> GitHub 直接連結：</label>
+            <div class="result-url-wrapper">
+                <input type="text" id="finalUrl" placeholder="尚未產生..." readonly>
+                <button class="btn-copy" id="copyBtn">複製</button>
+            </div>
+        </div>
+
+        <div id="infoPanel" class="info-panel">
+            <div><i class="fas fa-clock"></i> 完成時間：<b id="doneTime">-</b></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button class="btn-gas" id="gasBtn" disabled>第二步：點擊傳送至 LINE</button>
+            <button class="btn-reset" id="resetBtn"><i class="fas fa-redo"></i> 重新上傳 / 清空</button>
+            <div id="timerDisplay">處理時間：<span id="seconds">0</span> 秒</div>
+            <div id="statusInfo" class="status-text"></div>
+        </div>
+
+        <div class="passcode-section">
+            <span><i class="fas fa-lock"></i> Debug 通行碼:</span>
+            <input type="password" id="passcodeInput" placeholder="****">
+            <button class="btn-verify" id="verifyBtn">確認</button>
+        </div>
+
+        <div id="debugPanel">
+            <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 系統診斷中心 (管理員模式)</div>
+            <div id="debugContent">請上傳檔案以開始診斷。</div>
+        </div>
+    </div>
+
+    <script>
+        const _u = () => "https://gas-proxy.amison.workers.dev";
+        let timerInterval;
+        let verifiedPasscode = ""; 
+
+        document.getElementById('resetBtn').onclick = () => location.reload();
+
+        // 驗證按鈕：成功後立刻顯示面板
+        document.getElementById('verifyBtn').onclick = async function() {
+            const pass = document.getElementById('passcodeInput').value;
+            const btn = this;
+            const debugPanel = document.getElementById('debugPanel');
+
+            if (!pass) return alert("請輸入通行碼");
+
+            btn.innerText = "...";
+            try {
+                const res = await fetch(_u(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: "check_passcode", passcode: pass })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    verifiedPasscode = pass; 
+                    alert("
