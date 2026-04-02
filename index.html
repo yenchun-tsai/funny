@@ -84,11 +84,12 @@
 
         document.getElementById('resetBtn').onclick = () => location.reload();
 
-        // 驗證按鈕：成功後立刻顯示面板
+        // 修正：點擊確認後立即更新面板顯示，並儲存密碼
         document.getElementById('verifyBtn').onclick = async function() {
             const pass = document.getElementById('passcodeInput').value;
             const btn = this;
             const debugPanel = document.getElementById('debugPanel');
+            const debugContent = document.getElementById('debugContent');
 
             if (!pass) return alert("請輸入通行碼");
 
@@ -102,4 +103,80 @@
                 const result = await res.json();
                 if (result.success) {
                     verifiedPasscode = pass; 
-                    alert("
+                    alert("✅ 驗證成功");
+                    btn.style.background = "#00c300";
+                    btn.innerText = "OK";
+                    debugPanel.style.display = 'block';
+                    debugContent.innerText = "管理員模式已啟動，請選擇圖片上傳。";
+                } else {
+                    alert("❌ 通行碼錯誤");
+                    btn.innerText = "確認";
+                    debugPanel.style.display = 'none';
+                }
+            } catch (e) {
+                alert("連線失敗");
+                btn.innerText = "確認";
+            }
+        };
+
+        // 修正：選取檔案後的連鎖反應
+        document.getElementById('fileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('preview');
+            const label = document.getElementById('fileLabel');
+            const status = document.getElementById('statusInfo');
+            const timer = document.getElementById('timerDisplay');
+            const sec = document.getElementById('seconds');
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                preview.src = event.target.result;
+                preview.style.display = 'block';
+                label.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
+                status.innerText = "正在處理並上傳...";
+                timer.style.display = "block";
+                
+                let start = Date.now();
+                if(timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    sec.innerText = Math.floor((Date.now() - start) / 1000);
+                }, 1000);
+
+                const base64 = event.target.result.split(',')[1];
+                // 呼叫上傳函式
+                sendToProxy(file.name, base64, verifiedPasscode);
+            };
+            reader.readAsDataURL(file);
+        };
+
+        async function sendToProxy(fileName, base64Data, pass) {
+            const debugPanel = document.getElementById('debugPanel');
+            const debugContent = document.getElementById('debugContent');
+            const gasBtn = document.getElementById('gasBtn');
+            const label = document.getElementById('fileLabel');
+            const finalUrlInput = document.getElementById('finalUrl');
+            const imgUrlInput = document.getElementById('imgUrlInput');
+
+            try {
+                const res = await fetch(_u(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: fileName, 
+                        content: base64Data, 
+                        passcode: pass 
+                    })
+                });
+                
+                const result = await res.json();
+                
+                // 只有在有正確通行碼的情況下才更新診斷內容
+                if (result.showDebug && result.debug) {
+                    debugPanel.style.display = 'block';
+                    debugContent.innerHTML = `
+GAS 狀態: ${result.success ? "✅ 成功" : "❌ 失敗"}
+---------------------------
+GitHub: ${result.debug.HAS_GITHUB_TOKEN ? "✅ 已載入" : "⚠️ 未偵測"}
+LINE: ${result.debug.HAS_LINE
