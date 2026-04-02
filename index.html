@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; }
-        .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; margin: 20px auto; }
+        .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
         .input-group { margin: 20px 0; text-align: left; }
         .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); color: #333; }
         .result-group { margin-top: 15px; text-align: left; background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; }
@@ -22,11 +22,6 @@
         .info-panel { margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 10px; font-size: 12px; text-align: left; display: none; border: 1px solid rgba(255,255,255,0.1); }
         #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
         .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; height: 1.2em; }
-        
-        .passcode-section { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
-        .passcode-section input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; padding: 4px 8px; width: 80px; outline: none; }
-        .btn-verify { background: #555; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
-
         #debugPanel { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.85); border-radius: 10px; font-size: 11px; text-align: left; display: none; color: #00ff00; font-family: 'Consolas', monospace; border: 1px solid #555; overflow-x: auto; }
     </style>
 </head>
@@ -65,61 +60,18 @@
             <div id="statusInfo" class="status-text"></div>
         </div>
 
-        <div class="passcode-section">
-            <span><i class="fas fa-lock"></i> Debug 通行碼:</span>
-            <input type="password" id="passcodeInput" placeholder="****">
-            <button class="btn-verify" id="verifyBtn">確認</button>
-        </div>
-
         <div id="debugPanel">
-            <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 系統診斷中心 (管理員模式)</div>
-            <div id="debugContent">請上傳檔案以開始診斷。</div>
+            <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 系統狀態監測</div>
+            <div id="debugContent">等待操作...</div>
         </div>
     </div>
 
     <script>
         const _u = () => "https://gas-proxy.amison.workers.dev";
         let timerInterval;
-        let verifiedPasscode = ""; 
 
         document.getElementById('resetBtn').onclick = () => location.reload();
 
-        // 修正：點擊確認後立即更新面板顯示，並儲存密碼
-        document.getElementById('verifyBtn').onclick = async function() {
-            const pass = document.getElementById('passcodeInput').value;
-            const btn = this;
-            const debugPanel = document.getElementById('debugPanel');
-            const debugContent = document.getElementById('debugContent');
-
-            if (!pass) return alert("請輸入通行碼");
-
-            btn.innerText = "...";
-            try {
-                const res = await fetch(_u(), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: "check_passcode", passcode: pass })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    verifiedPasscode = pass; 
-                    alert("✅ 驗證成功");
-                    btn.style.background = "#00c300";
-                    btn.innerText = "OK";
-                    debugPanel.style.display = 'block';
-                    debugContent.innerText = "管理員模式已啟動，請選擇圖片上傳。";
-                } else {
-                    alert("❌ 通行碼錯誤");
-                    btn.innerText = "確認";
-                    debugPanel.style.display = 'none';
-                }
-            } catch (e) {
-                alert("連線失敗");
-                btn.innerText = "確認";
-            }
-        };
-
-        // 修正：選取檔案後的連鎖反應
         document.getElementById('fileInput').onchange = function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -127,16 +79,22 @@
             const preview = document.getElementById('preview');
             const label = document.getElementById('fileLabel');
             const status = document.getElementById('statusInfo');
+            const gasBtn = document.getElementById('gasBtn');
             const timer = document.getElementById('timerDisplay');
             const sec = document.getElementById('seconds');
+            const debugPanel = document.getElementById('debugPanel');
+            const debugContent = document.getElementById('debugContent');
 
             const reader = new FileReader();
             reader.onload = (event) => {
                 preview.src = event.target.result;
                 preview.style.display = 'block';
+                
                 label.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
-                status.innerText = "正在處理並上傳...";
+                status.innerText = "正在傳送圖片至雲端...";
                 timer.style.display = "block";
+                debugPanel.style.display = 'block';
+                debugContent.innerText = "檔案準備就緒，正在啟動上傳流程...";
                 
                 let start = Date.now();
                 if(timerInterval) clearInterval(timerInterval);
@@ -145,38 +103,70 @@
                 }, 1000);
 
                 const base64 = event.target.result.split(',')[1];
-                // 呼叫上傳函式
-                sendToProxy(file.name, base64, verifiedPasscode);
+                sendToProxy(file.name, base64);
             };
             reader.readAsDataURL(file);
+
+            async function sendToProxy(fileName, base64Data) {
+                try {
+                    const res = await fetch(_u(), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: fileName, content: base64Data })
+                    });
+                    
+                    const result = await res.json();
+                    const d = result.debug || {}; // 防止 debug 為 undefined 導致崩潰
+                    
+                    debugContent.innerHTML = `
+連線狀態: ✅ 已建立
+GAS 執行: ${result.success ? "✅ 成功" : "❌ 失敗 (" + (result.error || "未知") + ")"}
+---------------------------
+參數設定狀態:
+- GitHub Token: ${d.HAS_GITHUB_TOKEN ? "✅ 已載入" : "⚠️ 未偵測"}
+- LINE Token: ${d.HAS_LINE_TOKEN ? "✅ 已載入" : "⚠️ 未偵測"}
+- 安全金鑰: ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 錯誤"}
+---------------------------
+系統訊息: ${result.message || "無"}
+                    `;
+
+                    if (result.success) {
+                        clearInterval(timerInterval);
+                        document.getElementById('doneTime').innerText = new Date().toLocaleString();
+                        document.getElementById('finalUrl').value = result.url || "";
+                        document.getElementById('imgUrlInput').value = result.url || "";
+                        document.getElementById('infoPanel').style.display = 'block';
+                        label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功';
+                        gasBtn.disabled = false;
+                        status.innerText = "圖片已就緒，可傳送至 LINE。";
+                    } else { throw new Error(result.error || "上傳過程出錯"); }
+                } catch (err) {
+                    clearInterval(timerInterval);
+                    debugContent.innerHTML += `<br><span style="color:red;">❌ 傳輸錯誤: ${err.message}</span>`;
+                    alert("上傳失敗: " + err.message);
+                    label.innerHTML = '重新嘗試';
+                }
+            }
         };
 
-        async function sendToProxy(fileName, base64Data, pass) {
-            const debugPanel = document.getElementById('debugPanel');
-            const debugContent = document.getElementById('debugContent');
-            const gasBtn = document.getElementById('gasBtn');
-            const label = document.getElementById('fileLabel');
-            const finalUrlInput = document.getElementById('finalUrl');
-            const imgUrlInput = document.getElementById('imgUrlInput');
-
+        document.getElementById('gasBtn').onclick = async function() {
+            const url = document.getElementById('finalUrl').value;
+            this.disabled = true;
+            this.innerText = "發送指令中...";
             try {
-                const res = await fetch(_u(), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: fileName, 
-                        content: base64Data, 
-                        passcode: pass 
-                    })
-                });
-                
-                const result = await res.json();
-                
-                // 只有在有正確通行碼的情況下才更新診斷內容
-                if (result.showDebug && result.debug) {
-                    debugPanel.style.display = 'block';
-                    debugContent.innerHTML = `
-GAS 狀態: ${result.success ? "✅ 成功" : "❌ 失敗"}
----------------------------
-GitHub: ${result.debug.HAS_GITHUB_TOKEN ? "✅ 已載入" : "⚠️ 未偵測"}
-LINE: ${result.debug.HAS_LINE
+                await fetch(`${_u()}?imgUrl=${encodeURIComponent(url)}`);
+                alert('已發送指令！請確認 LINE。');
+            } catch (e) { alert('發送失敗'); }
+            this.disabled = false;
+            this.innerText = "第二步：點擊傳送至 LINE";
+        };
+
+        document.getElementById('copyBtn').onclick = () => {
+            const el = document.getElementById('finalUrl');
+            el.select();
+            document.execCommand('copy');
+            alert('網址已複製！');
+        };
+    </script>
+</body>
+</html>
