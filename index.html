@@ -52,9 +52,7 @@
         </div>
 
         <div id="infoPanel" class="info-panel">
-            <div style="margin-bottom: 6px;"><i class="fas fa-clock"></i> 完成時間：<b id="doneTime">-</b></div>
-            <div style="margin-bottom: 6px;"><i class="fas fa-globe"></i> 所在地：<b id="userLocation">偵測中...</b></div>
-            <div><i class="fas fa-network-wired"></i> 您的 IP：<b id="userIp">偵測中...</b></div>
+            <div><i class="fas fa-clock"></i> 完成時間：<b id="doneTime">-</b></div>
         </div>
 
         <div style="margin-top: 20px;">
@@ -65,24 +63,14 @@
         </div>
 
         <div id="debugPanel">
-            <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 Debug 診斷中心</div>
-            <div id="debugContent">等待上傳觸發診斷...</div>
+            <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 系統狀態監測</div>
+            <div id="debugContent">等待操作...</div>
         </div>
     </div>
 
     <script>
         const _u = () => "https://gas-proxy.amison.workers.dev";
         let timerInterval;
-
-        // 地理偵測
-        (async function() {
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                document.getElementById('userLocation').innerText = `${data.country_name} - ${data.city}`;
-                document.getElementById('userIp').innerText = data.ip;
-            } catch (e) {}
-        })();
 
         document.getElementById('resetBtn').onclick = () => location.reload();
 
@@ -106,86 +94,12 @@
                 preview.style.display = 'block';
                 
                 label.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
-                status.innerText = "正在透過 Proxy 傳送...";
+                status.innerText = "正在傳送圖片至雲端...";
                 timer.style.display = "block";
                 debugPanel.style.display = 'block';
-                debugContent.innerText = "讀取檔案完成，開始上傳...";
+                debugContent.innerText = "檔案準備就緒，正在啟動上傳流程...";
                 
                 let start = Date.now();
                 if(timerInterval) clearInterval(timerInterval);
                 timerInterval = setInterval(() => {
-                    sec.innerText = Math.floor((Date.now() - start) / 1000);
-                }, 1000);
-
-                const base64 = event.target.result.split(',')[1];
-                sendToProxy(file.name, base64);
-            };
-            reader.readAsDataURL(file);
-
-            async function sendToProxy(fileName, base64Data) {
-                try {
-                    debugContent.innerText = "連線至 Worker (" + _u() + ")...";
-                    const res = await fetch(_u(), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: fileName, content: base64Data })
-                    });
-                    
-                    const result = await res.json();
-                    
-                    // 診斷資訊渲染
-                    debugContent.innerHTML = `
-Worker 狀態: 成功連線
-GAS 結果: ${result.success ? "✅ 成功" : "❌ 失敗 (" + (result.error || "未知") + ")"}
----------------------------
-GAS 內部變數診斷:
-- GITHUB_USER: ${result.debug?.GITHUB_USER || "抓不到"}
-- GITHUB_REPO: ${result.debug?.GITHUB_REPO || "抓不到"}
-- GitHub Token: ${result.debug?.HAS_GITHUB_TOKEN ? "✅ 已設定" : "⚠️ 未設定"}
-- LINE Token: ${result.debug?.HAS_LINE_TOKEN ? "✅ 已設定" : "⚠️ 未設定"}
-- Secret Key: ${result.debug?.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 不符"}
----------------------------
-訊息: ${result.message || "無"}
-                    `;
-
-                    if (result.success) {
-                        clearInterval(timerInterval);
-                        document.getElementById('doneTime').innerText = new Date().toLocaleString();
-                        document.getElementById('finalUrl').value = result.url;
-                        document.getElementById('imgUrlInput').value = result.url;
-                        document.getElementById('infoPanel').style.display = 'block';
-                        preview.src = result.url; // 換成正式 URL
-                        label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功';
-                        gasBtn.disabled = false;
-                        status.innerText = "一切就緒！";
-                    } else { throw new Error(result.error); }
-                } catch (err) {
-                    clearInterval(timerInterval);
-                    debugContent.innerHTML += `<br><span style="color:red;">❌ 錯誤: ${err.message}</span>`;
-                    alert("失敗: " + err.message);
-                    label.innerHTML = '重試';
-                }
-            }
-        };
-
-        document.getElementById('gasBtn').onclick = async function() {
-            const url = document.getElementById('finalUrl').value;
-            this.disabled = true;
-            this.innerText = "傳送中...";
-            try {
-                await fetch(`${_u()}?imgUrl=${encodeURIComponent(url)}`);
-                alert('已發送指令！請確認 LINE。');
-            } catch (e) { alert('發送失敗'); }
-            this.disabled = false;
-            this.innerText = "第二步：點擊傳送至 LINE";
-        };
-
-        document.getElementById('copyBtn').onclick = () => {
-            const el = document.getElementById('finalUrl');
-            el.select();
-            document.execCommand('copy');
-            alert('網址已複製！');
-        };
-    </script>
-</body>
-</html>
+                    sec.innerText = Math.floor((Date.now() -
