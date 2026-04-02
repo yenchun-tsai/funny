@@ -23,7 +23,7 @@
         #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
         .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; height: 1.2em; }
         
-        /* 系統狀態監測面板：預設隱藏 */
+        /* 系統狀態監測面板：預設隱藏且內容為空 */
         #debugPanel { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.85); border-radius: 10px; font-size: 11px; text-align: left; display: none; color: #00ff00; font-family: 'Consolas', monospace; border: 1px solid #555; overflow-x: auto; }
         
         /* 驗證區域樣式 */
@@ -78,7 +78,7 @@
 
         <div id="debugPanel">
             <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 系統狀態監測</div>
-            <div id="debugContent">等待操作中...</div>
+            <div id="debugContent"></div>
         </div>
     </div>
 
@@ -159,7 +159,7 @@
             this.innerText = "第二步：點擊傳送至 LINE";
         };
 
-        // 核心邏輯：點擊按鈕才去驗證 DEBUG_PASSCODE
+        // 安全強化的驗證邏輯
         document.getElementById('verifyBtn').onclick = async function() {
             const passcode = document.getElementById('debugPass').value;
             const debugPanel = document.getElementById('debugPanel');
@@ -175,37 +175,39 @@
                 const res = await fetch(_u(), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // 發送 action: 'verify' 給 Worker 進行密碼比對
                     body: JSON.stringify({ passcode: passcode, action: 'verify' })
                 });
                 
                 const result = await res.json();
                 
-                // 假設 Worker 比對成功後會回傳 auth: true 以及 debug 資訊
-                if (result.auth === true) {
-                    const d = result.debug || {};
+                // 只有後端明確回傳成功，才去構造 HTML 內容
+                if (result && result.auth === true && result.debug) {
+                    const d = result.debug;
                     debugPanel.style.display = 'block';
-                    debugContent.innerHTML = `
-連線狀態: ✅ 驗證通過
----------------------------
-Worker 參數檢測:
-- GitHub Token: ${d.HAS_GITHUB_TOKEN ? "✅ 存在" : "❌ 缺失"}
-- LINE Token: ${d.HAS_LINE_TOKEN ? "✅ 存在" : "❌ 缺失"}
-- 內部金鑰 (WEB_SECRET): ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 錯誤"}
----------------------------
-系統訊息: 面板已解鎖
-                    `;
+                    
+                    // 動態組建內容，不留死代碼
+                    let infoHtml = `<div style="color:#ffeb3b;margin-bottom:5px;">✅ 管理員權限驗證成功</div>`;
+                    infoHtml += `---------------------------<br>`;
+                    infoHtml += `GitHub 狀態: ${d.HAS_GITHUB_TOKEN ? "✅ 已連線" : "❌ 未設定"}<br>`;
+                    infoHtml += `LINE 狀態: ${d.HAS_LINE_TOKEN ? "✅ 已連線" : "❌ 未設定"}<br>`;
+                    infoHtml += `傳輸密鑰: ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 錯誤"}<br>`;
+                    infoHtml += `---------------------------<br>`;
+                    infoHtml += `<span style="color:#888;">授權時間: ${new Date().toLocaleTimeString()}</span>`;
+                    
+                    debugContent.innerHTML = infoHtml;
+                    alert('驗證成功，監測面板已開啟。');
                 } else {
+                    // 驗證失敗徹底清空內容並隱藏
+                    debugContent.innerHTML = "";
                     debugPanel.style.display = 'none';
-                    alert('金鑰不正確，無法開啟監測面板。');
+                    alert('金鑰不正確！');
                 }
             } catch (err) {
-                alert('伺服器連線異常，驗證失敗。');
+                alert('連線失敗，請檢查網路。');
             }
             this.innerText = "驗證監測";
         };
 
-        // 複製 URL 邏輯
         document.getElementById('copyBtn').onclick = () => {
             const el = document.getElementById('finalUrl');
             el.select();
