@@ -10,29 +10,17 @@
         .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
         .input-group { margin: 20px 0; text-align: left; }
         .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); color: #333; }
-        .result-group { margin-top: 15px; text-align: left; background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; }
-        .result-url-wrapper { display: flex; gap: 5px; margin-top: 8px; }
-        .result-url-wrapper input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; font-size: 11px; background: #f0f0f0; color: #333; outline: none; }
-        .btn-copy { background: #555; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         .file-label { display: block; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 15px; text-align: center; font-size: 14px; }
         #preview { max-width: 100%; margin: 15px 0; border-radius: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .btn-gas { background: #00c300; border: none; color: white; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; margin-bottom: 10px; }
         .btn-gas:disabled { background: #666 !important; opacity: 0.7; cursor: not-allowed; }
         .btn-reset { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: white; padding: 8px 15px; border-radius: 50px; cursor: pointer; font-size: 12px; width: 100%; transition: 0.3s; }
-        .info-panel { margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 10px; font-size: 12px; text-align: left; display: none; border: 1px solid rgba(255,255,255,0.1); }
-        #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
-        .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; height: 1.2em; }
-        
-        #debugPanel { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.85); border-radius: 10px; font-size: 11px; text-align: left; display: none; color: #00ff00; font-family: 'Consolas', monospace; border: 1px solid #555; overflow-x: auto; }
-        
-        .auth-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: flex-end; }
-        .auth-controls { display: flex; gap: 8px; }
-        .auth-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 5px; font-size: 11px; width: 130px; outline: none; }
-        .btn-verify { background: #f39c12; color: white; border: none; padding: 6px 15px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s; }
-        .btn-verify:hover { background: #e67e22; }
-
-        .delete-option { margin-top: 10px; text-align: right; font-size: 12px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; opacity: 0.9; }
-        .delete-option input { cursor: pointer; }
+        .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; min-height: 1.2em; }
+        .delete-option { margin-top: 10px; text-align: right; font-size: 12px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+        #debugPanel { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.85); border-radius: 10px; font-size: 11px; text-align: left; display: none; color: #00ff00; font-family: 'Consolas', monospace; border: 1px solid #555; }
+        .auth-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px; justify-content: flex-end; }
+        .auth-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px; border-radius: 5px; width: 100px; font-size: 11px; }
+        .btn-verify { background: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -45,75 +33,55 @@
             <label for="fileInput" class="file-label" id="fileLabel">
                 <i class="fas fa-cloud-upload-alt"></i> 選擇檔案 (限圖片)
             </label>
-            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp" style="display:none;">
+            <input type="file" id="fileInput" accept="image/*" style="display:none;">
             
             <div class="delete-option">
                 <input type="checkbox" id="autoDelete" checked> 
-                <label for="autoDelete">傳送後自動刪除 GitHub 備份</label>
+                <label for="autoDelete" style="cursor:pointer;">傳送後自動刪除 GitHub 備份</label>
             </div>
 
-            <input type="text" id="imgUrlInput" class="url-input" placeholder="產生的 URL 會顯示在這裡" readonly>
+            <input type="text" id="imgUrlInput" class="url-input" placeholder="URL 會顯示在這裡" readonly>
         </div>
 
         <img id="preview">
 
-        <div id="resultGroup" class="result-group">
-            <label style="font-size: 11px;"><i class="fas fa-share-alt"></i> GitHub 直接連結：</label>
-            <div class="result-url-wrapper">
-                <input type="text" id="finalUrl" placeholder="尚未產生..." readonly>
-                <button class="btn-copy" id="copyBtn">複製</button>
-            </div>
-        </div>
-
-        <div id="infoPanel" class="info-panel">
-            <div><i class="fas fa-clock"></i> 完成時間：<b id="doneTime">-</b></div>
-        </div>
-
         <div style="margin-top: 20px;">
             <button class="btn-gas" id="gasBtn" disabled>第二步：點擊傳送至 LINE</button>
-            <button class="btn-reset" id="resetBtn"><i class="fas fa-redo"></i> 重新上傳 / 清空</button>
-            <div id="timerDisplay">處理時間：<span id="seconds">0</span> 秒</div>
+            <button class="btn-reset" id="resetBtn">重新上傳 / 清空</button>
             <div id="statusInfo" class="status-text"></div>
         </div>
 
         <div class="auth-section">
-            <div class="auth-controls">
-                <input type="password" id="debugPass" class="auth-input" placeholder="輸入管理金鑰">
-                <button class="btn-verify" id="verifyBtn">驗證監測</button>
-            </div>
+            <input type="password" id="debugPass" class="auth-input" placeholder="金鑰">
+            <button class="btn-verify" id="verifyBtn">驗證監測</button>
         </div>
 
         <div id="debugPanel">
-            <div style="border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 4px; color: #ffeb3b;">🐞 系統狀態監測</div>
             <div id="debugContent"></div>
         </div>
     </div>
 
     <script>
-        const _u = () => "https://gas-proxy.amison.workers.dev";
+        const API_URL = "https://gas-proxy.amison.workers.dev";
         let timerInterval;
 
+        // 重設按鈕
         document.getElementById('resetBtn').onclick = () => location.reload();
 
+        // 檔案選取監聽
         document.getElementById('fileInput').onchange = function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 1. 檔案類型驗證
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                alert("不允許的檔案格式！僅支援 JPG, PNG, GIF, WEBP");
-                this.value = "";
+            // 格式檢查
+            if (!file.type.startsWith('image/')) {
+                alert("請選擇圖片檔案！");
                 return;
             }
 
             const preview = document.getElementById('preview');
             const label = document.getElementById('fileLabel');
             const status = document.getElementById('statusInfo');
-            const gasBtn = document.getElementById('gasBtn');
-            const timer = document.getElementById('timerDisplay');
-            const sec = document.getElementById('seconds');
-            // 注意：這裡要抓取當前的 Checkbox 狀態
             const autoDelete = document.getElementById('autoDelete').checked;
 
             const reader = new FileReader();
@@ -121,124 +89,83 @@
                 preview.src = event.target.result;
                 preview.style.display = 'block';
                 label.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
-                status.innerText = "正在傳送圖片至雲端...";
-                timer.style.display = "block";
+                status.innerText = "正在處理並上傳...";
                 
-                let start = Date.now();
-                if(timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(() => {
-                    sec.innerText = Math.floor((Date.now() - start) / 1000);
-                }, 1000);
-
                 const base64 = event.target.result.split(',')[1];
-                // 呼叫上傳函數
-                sendToProxy(file.name, base64, autoDelete);
+                uploadFile(file.name, base64, autoDelete);
             };
             reader.readAsDataURL(file);
         };
 
-        // 抽取出來的上傳函數，確保參數傳遞正確
-        async function sendToProxy(fileName, base64Data, shouldDelete) {
-            const label = document.getElementById('fileLabel');
+        // 上傳函數
+        async function uploadFile(name, content, shouldDelete) {
             const status = document.getElementById('statusInfo');
             const gasBtn = document.getElementById('gasBtn');
+            const label = document.getElementById('fileLabel');
 
             try {
-                const res = await fetch(_u(), {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: fileName, 
-                        content: base64Data, 
+                    body: JSON.stringify({
                         action: 'upload',
-                        autoDelete: shouldDelete 
+                        name: name,
+                        content: content,
+                        autoDelete: shouldDelete
                     })
                 });
-                
-                const result = await res.json();
+
+                const result = await response.json();
+                console.log("Upload Result:", result);
+
                 if (result.success) {
-                    if(timerInterval) clearInterval(timerInterval);
-                    document.getElementById('doneTime').innerText = new Date().toLocaleString();
-                    document.getElementById('finalUrl').value = result.url || "";
-                    document.getElementById('imgUrlInput').value = result.url || "";
-                    document.getElementById('infoPanel').style.display = 'block';
+                    document.getElementById('imgUrlInput').value = result.url;
                     label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功';
                     gasBtn.disabled = false;
-                    // 顯示後端傳回的 message (包含是否已刪除的資訊)
-                    status.innerText = result.message || "圖片已就緒，可傳送至 LINE。";
-                } else { 
-                    throw new Error(result.error || "上傳失敗"); 
+                    status.innerText = result.message || "上傳完成，可傳送至 LINE。";
+                } else {
+                    throw new Error(result.error || "後端回傳錯誤");
                 }
             } catch (err) {
-                if(timerInterval) clearInterval(timerInterval);
-                alert("錯誤: " + err.message);
-                label.innerHTML = '重新嘗試';
+                console.error(err);
+                alert("上傳失敗: " + err.message);
+                label.innerHTML = '重試上傳';
                 status.innerText = "錯誤: " + err.message;
             }
         }
 
+        // 傳送 LINE
         document.getElementById('gasBtn').onclick = async function() {
-            const url = document.getElementById('finalUrl').value;
+            const url = document.getElementById('imgUrlInput').value;
             this.disabled = true;
-            this.innerText = "發送指令中...";
+            this.innerText = "傳送中...";
             try {
-                await fetch(`${_u()}?imgUrl=${encodeURIComponent(url)}`);
-                alert('已發送指令！請確認 LINE。');
-            } catch (e) { alert('發送失敗'); }
-            this.disabled = false;
+                const res = await fetch(`${API_URL}?imgUrl=${encodeURIComponent(url)}`);
+                alert('已發送至 LINE！');
+            } catch (e) { alert('傳送失敗'); }
             this.innerText = "第二步：點擊傳送至 LINE";
+            this.disabled = false;
         };
 
+        // 驗證監測
         document.getElementById('verifyBtn').onclick = async function() {
-            const passcode = document.getElementById('debugPass').value;
-            const debugPanel = document.getElementById('debugPanel');
-            const debugContent = document.getElementById('debugContent');
-            
-            if (!passcode) {
-                alert('請先輸入金鑰');
-                return;
-            }
+            const pass = document.getElementById('debugPass').value;
+            if (!pass) return alert("請輸入金鑰");
 
-            this.innerText = "驗證中...";
             try {
-                const res = await fetch(_u(), {
+                const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ passcode: passcode, action: 'verify' })
+                    body: JSON.stringify({ action: 'verify', passcode: pass })
                 });
-                
                 const result = await res.json();
-                
-                if (result && result.auth === true && result.debug) {
-                    const d = result.debug;
-                    debugPanel.style.display = 'block';
-                    
-                    let infoHtml = `<div style="color:#ffeb3b;margin-bottom:5px;">✅ 管理員權限驗證成功</div>`;
-                    infoHtml += `---------------------------<br>`;
-                    infoHtml += `GitHub 狀態: ${d.HAS_GITHUB_TOKEN ? "✅ 存在" : "❌ 缺失"}<br>`;
-                    infoHtml += `LINE 狀態: ${d.HAS_LINE_TOKEN ? "✅ 存在" : "❌ 缺失"}<br>`;
-                    infoHtml += `傳輸密鑰: ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 錯誤"}<br>`;
-                    infoHtml += `---------------------------<br>`;
-                    infoHtml += `<span style="color:#888;">授權時間: ${new Date().toLocaleTimeString()}</span>`;
-                    
-                    debugContent.innerHTML = infoHtml;
-                    alert('驗證成功，監測面板已開啟。');
+                if (result.auth) {
+                    document.getElementById('debugPanel').style.display = 'block';
+                    document.getElementById('debugContent').innerText = "驗證成功，系統監控已解鎖。";
                 } else {
-                    debugContent.innerHTML = "";
-                    debugPanel.style.display = 'none';
-                    alert('金鑰不正確！');
+                    alert("金鑰錯誤");
                 }
-            } catch (err) {
-                alert('連線失敗，請檢查網路。');
-            }
-            this.innerText = "驗證監測";
-        };
-
-        document.getElementById('copyBtn').onclick = () => {
-            const el = document.getElementById('finalUrl');
-            el.select();
-            document.execCommand('copy');
-            alert('網址已複製！');
+            } catch (e) { alert("連線失敗"); }
         };
     </script>
 </body>
