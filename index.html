@@ -10,7 +10,7 @@
         .container { background: rgba(255, 255, 255, 0.15); padding: 2.5rem; border-radius: 20px; backdrop-filter: blur(15px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 450px; width: 90%; }
         .input-group { margin: 20px 0; text-align: left; }
         .url-input { width: 100%; padding: 12px; border-radius: 8px; border: none; outline: none; box-sizing: border-box; font-size: 13px; margin-top: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.9); color: #333; }
-        .result-group { margin-top: 15px; text-align: left; background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; }
+        .result-group { margin-top: 15px; text-align: left; background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; display: none; }
         .result-url-wrapper { display: flex; gap: 5px; margin-top: 8px; }
         .result-url-wrapper input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; font-size: 11px; background: #f0f0f0; color: #333; outline: none; }
         .btn-copy { background: #555; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
@@ -23,8 +23,6 @@
         #timerDisplay { font-size: 14px; margin-top: 10px; color: #ffeb3b; font-weight: bold; display: none; }
         .status-text { font-size: 12px; margin-top: 5px; opacity: 0.8; height: 1.2em; }
         .delete-option { margin-top: 10px; text-align: right; font-size: 12px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; opacity: 0.9; }
-        
-        /* 監測面板樣式 */
         #debugPanel { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.85); border-radius: 10px; font-size: 11px; text-align: left; display: none; color: #00ff00; font-family: 'Consolas', monospace; border: 1px solid #555; overflow-x: auto; }
         .auth-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 8px; }
         .auth-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px; border-radius: 5px; font-size: 11px; width: 100px; }
@@ -48,12 +46,12 @@
                 <label for="autoDelete" style="cursor:pointer;">傳送後自動刪除 GitHub 備份</label>
             </div>
 
-            <input type="text" id="imgUrlInput" class="url-input" placeholder="產生的 URL 會顯示在這裡" readonly>
+            <input type="text" id="imgUrlInput" class="url-input" placeholder="處理後將在此顯示 URL" readonly>
         </div>
 
         <img id="preview">
 
-        <div id="resultGroup" class="result-group" style="display:none;">
+        <div id="resultGroup" class="result-group">
             <label style="font-size: 11px;"><i class="fas fa-share-alt"></i> GitHub 直接連結：</label>
             <div class="result-url-wrapper">
                 <input type="text" id="finalUrl" placeholder="尚未產生..." readonly>
@@ -73,8 +71,8 @@
         </div>
 
         <div class="auth-section">
-            <input type="password" id="debugPass" class="auth-input" placeholder="輸入管理金鑰">
-            <button class="btn-verify" id="verifyBtn">驗證監測</button>
+            <input type="password" id="debugPass" class="auth-input" placeholder="管理密碼">
+            <button class="btn-verify" id="verifyBtn">監測驗證</button>
         </div>
 
         <div id="debugPanel">
@@ -84,7 +82,13 @@
     </div>
 
     <script>
-        const _u = () => "https://gas-proxy.amison.workers.dev";
+        /**
+         * 🔒 安全升級：網址指向「自己」
+         * 因為你已在 Worker 變數中設定了 GAS_PROXY_URL，
+         * 所以前端直接請求當前網址路徑，由後端 Worker 決定去哪裡。
+         */
+        const _u = () => window.location.origin + window.location.pathname;
+        
         let timerInterval;
 
         document.getElementById('resetBtn').onclick = () => location.reload();
@@ -104,7 +108,7 @@
             reader.onload = (event) => {
                 preview.src = event.target.result;
                 preview.style.display = 'block';
-                label.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
+                label.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 處理中...';
                 status.innerText = "正在傳送並部署至 GitHub (約需 45 秒)...";
                 timer.style.display = "block";
                 
@@ -149,28 +153,27 @@
                     document.getElementById('infoPanel').style.display = 'block';
                     resultGroup.style.display = 'block';
                     
-                    label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳成功';
+                    label.innerHTML = '<i class="fas fa-check-circle"></i> 上傳完成';
                     gasBtn.disabled = false;
-                    status.innerText = result.message || "圖片已就緒，可傳送至 LINE。";
-                } else { 
-                    throw new Error(result.error || "上傳失敗"); 
-                }
+                    status.innerText = result.message || "圖片部署完畢，隨時可發送。";
+                } else { throw new Error(result.error || "上傳過程出錯"); }
             } catch (err) {
                 if(timerInterval) clearInterval(timerInterval);
                 alert("錯誤: " + err.message);
-                label.innerHTML = '重新上傳';
-                status.innerText = "失敗: " + err.message;
+                label.innerHTML = '點此重試';
+                status.innerText = "失敗原因: " + err.message;
             }
         }
 
         document.getElementById('gasBtn').onclick = async function() {
             const url = document.getElementById('imgUrlInput').value;
             this.disabled = true;
-            this.innerText = "發送指令中...";
+            this.innerText = "LINE 傳送中...";
             try {
+                // 這裡改用 URL 參數發送 GET 請求給 Worker
                 await fetch(`${_u()}?imgUrl=${encodeURIComponent(url)}`);
-                alert('已發送至 LINE！請確認手機。');
-            } catch (e) { alert('發送失敗'); }
+                alert('發送成功！請檢查 LINE 訊息。');
+            } catch (e) { alert('發送失敗，請確認網路或 API 狀態。'); }
             this.disabled = false;
             this.innerText = "第二步：點擊傳送至 LINE";
         };
@@ -180,7 +183,7 @@
             const debugPanel = document.getElementById('debugPanel');
             const debugContent = document.getElementById('debugContent');
             
-            if (!passcode) return alert('請輸入金鑰');
+            if (!passcode) return alert('請輸入密鑰');
 
             this.innerText = "驗證中...";
             try {
@@ -195,29 +198,29 @@
                     const d = result.debug || {};
                     debugPanel.style.display = 'block';
                     debugContent.innerHTML = `
-連線狀態: ✅ 驗證通過
+✅ 管理員權限驗證通過
 ---------------------------
-系統診斷:
-- GitHub 串接: ${d.HAS_GITHUB_TOKEN ? "✅ 已建立" : "❌ 未連通"}
-- LINE 串接: ${d.HAS_LINE_TOKEN ? "✅ 已建立" : "❌ 未連通"}
-- 金鑰驗證: ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 錯誤"}
+系統診斷資訊:
+- GitHub 通訊: ${d.HAS_GITHUB_TOKEN ? "✅ OK" : "❌ 異常"}
+- LINE 通訊: ${d.HAS_LINE_TOKEN ? "✅ OK" : "❌ 異常"}
+- 安全金鑰: ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 不符"}
 ---------------------------
-訊息: 面板已解鎖
+時間: ${new Date().toLocaleTimeString()}
                     `;
-                    alert('驗證成功！');
+                    alert('解鎖成功！');
                 } else {
-                    alert('金鑰錯誤');
+                    alert('密鑰無效');
                     debugPanel.style.display = 'none';
                 }
-            } catch (err) { alert('連線失敗'); }
-            this.innerText = "驗證監測";
+            } catch (err) { alert('伺服器無回應'); }
+            this.innerText = "監測驗證";
         };
 
         document.getElementById('copyBtn').onclick = () => {
             const el = document.getElementById('finalUrl');
             el.select();
             document.execCommand('copy');
-            alert('網址已複製！');
+            alert('連結已複製到剪貼簿！');
         };
     </script>
 </body>
