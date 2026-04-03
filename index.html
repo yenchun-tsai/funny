@@ -83,11 +83,10 @@
 
     <script>
         /**
-         * 🔒 安全升級：網址指向「自己」
-         * 因為你已在 Worker 變數中設定了 GAS_PROXY_URL，
-         * 所以前端直接請求當前網址路徑，由後端 Worker 決定去哪裡。
+         * ⚠️ 注意：此網址必須是你 Cloudflare Workers 的網址
+         * 否則從 GitHub Pages 執行時會找不到 API。
          */
-        const _u = () => "https://gas-proxy.amison.workers.dev";
+        const _u = () => "https://你的Worker名稱.你的帳號.workers.dev";
         
         let timerInterval;
 
@@ -170,58 +169,6 @@
             this.disabled = true;
             this.innerText = "LINE 傳送中...";
             try {
-                // 這裡改用 URL 參數發送 GET 請求給 Worker
                 await fetch(`${_u()}?imgUrl=${encodeURIComponent(url)}`);
                 alert('發送成功！請檢查 LINE 訊息。');
-            } catch (e) { alert('發送失敗，請確認網路或 API 狀態。'); }
-            this.disabled = false;
-            this.innerText = "第二步：點擊傳送至 LINE";
-        };
-
-        document.getElementById('verifyBtn').onclick = async function() {
-            const passcode = document.getElementById('debugPass').value;
-            const debugPanel = document.getElementById('debugPanel');
-            const debugContent = document.getElementById('debugContent');
-            
-            if (!passcode) return alert('請輸入密鑰');
-
-            this.innerText = "驗證中...";
-            try {
-                const res = await fetch(_u(), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ passcode: passcode, action: 'verify' })
-                });
-                const result = await res.json();
-                
-                if (result && result.auth === true) {
-                    const d = result.debug || {};
-                    debugPanel.style.display = 'block';
-                    debugContent.innerHTML = `
-✅ 管理員權限驗證通過
----------------------------
-系統診斷資訊:
-- GitHub 通訊: ${d.HAS_GITHUB_TOKEN ? "✅ OK" : "❌ 異常"}
-- LINE 通訊: ${d.HAS_LINE_TOKEN ? "✅ OK" : "❌ 異常"}
-- 安全金鑰: ${d.WEB_SECRET_MATCH ? "✅ 匹配" : "❌ 不符"}
----------------------------
-時間: ${new Date().toLocaleTimeString()}
-                    `;
-                    alert('解鎖成功！');
-                } else {
-                    alert('密鑰無效');
-                    debugPanel.style.display = 'none';
-                }
-            } catch (err) { alert('伺服器無回應'); }
-            this.innerText = "監測驗證";
-        };
-
-        document.getElementById('copyBtn').onclick = () => {
-            const el = document.getElementById('finalUrl');
-            el.select();
-            document.execCommand('copy');
-            alert('連結已複製到剪貼簿！');
-        };
-    </script>
-</body>
-</html>
+            } catch (e) { alert('發送失敗，請確認網路或 API 狀態。');
