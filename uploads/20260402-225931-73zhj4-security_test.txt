@@ -1,1 +1,0 @@
-Testing if proxy requires secret from client.
